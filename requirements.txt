@@ -1,0 +1,17 @@
+# PYPI :
+# python setup.py register
+# python setup.py sdist upload
+
+# gevent stack
+greenlet
+gevent
+
+# pysol
+pysol_base
+pysol_meters
+
+# redis
+redis
+
+# Json
+ujson
