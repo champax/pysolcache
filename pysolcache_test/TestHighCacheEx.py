@@ -26,12 +26,12 @@ import logging
 import unittest
 
 import redis
-from pysol_base.SolBase import SolBase
-from pysol_meters.Meters import Meters
+from pysolbase.SolBase import SolBase
+from pysolmeters.Meters import Meters
 
-from pysol_cache.HighCacheEx import HighCacheEx
-from pysol_cache.MemoryCache import MemoryCache
-from pysol_cache.RedisCache import RedisCache
+from pysolcache.HighCacheEx import HighCacheEx
+from pysolcache.MemoryCache import MemoryCache
+from pysolcache.RedisCache import RedisCache
 
 SolBase.voodoo_init()
 logger = logging.getLogger(__name__)

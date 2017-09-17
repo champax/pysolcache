@@ -1,17 +1,17 @@
-pysol_cache
+pysolcache
 ============
 
 Welcome to pysol
 
 Copyright (C) 2013/2017 Laurent Labatut / Laurent Champagnac
 
-pysol_cache is a set of python caches, memory, redis or both.
+pysolcache is a set of python caches, memory, redis or both.
 
 Usefull to handle L1 (memory) and L2 (redis) cache for python daemons.
 
 In all cases, serialization/deserialization of stored datas have to be done at client side (ie, serialize as u wish, ujson or equivalent)
 
-All caches are instrumented by Meters (pysol_meters).
+All caches are instrumented by Meters (pysolmeters).
 
 MemoryCache:
 - A pure python memory cache storing string/binary keys to string/binary values

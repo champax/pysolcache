@@ -29,11 +29,11 @@ import unittest
 import redis
 from gevent.event import Event
 from gevent.greenlet import Greenlet
-from pysol_base.SolBase import SolBase
-from pysol_meters.AtomicInt import AtomicIntSafe
-from pysol_meters.Meters import Meters
+from pysolbase.SolBase import SolBase
+from pysolmeters.AtomicInt import AtomicIntSafe
+from pysolmeters.Meters import Meters
 
-from pysol_cache.RedisCache import RedisCache
+from pysolcache.RedisCache import RedisCache
 
 SolBase.voodoo_init()
 logger = logging.getLogger(__name__)

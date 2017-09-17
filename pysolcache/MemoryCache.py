@@ -27,9 +27,9 @@ from collections import OrderedDict
 from threading import Lock
 
 import gevent
-from pysol_base.SolBase import SolBase
-from pysol_meters.AtomicInt import AtomicIntSafe
-from pysol_meters.Meters import Meters
+from pysolbase.SolBase import SolBase
+from pysolmeters.AtomicInt import AtomicIntSafe
+from pysolmeters.Meters import Meters
 
 logger = logging.getLogger(__name__)
 

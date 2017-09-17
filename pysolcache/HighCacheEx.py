@@ -24,9 +24,9 @@
 import logging
 import ujson
 
-from pysol_base.SolBase import SolBase
+from pysolbase.SolBase import SolBase
 
-from pysol_cache.HighCache import HighCache
+from pysolcache.HighCache import HighCache
 
 logger = logging.getLogger(__name__)
 

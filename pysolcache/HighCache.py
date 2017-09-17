@@ -23,8 +23,8 @@
 """
 import logging
 
-from pysol_cache.MemoryCache import MemoryCache
-from pysol_cache.RedisCache import RedisCache
+from pysolcache.MemoryCache import MemoryCache
+from pysolcache.RedisCache import RedisCache
 
 logger = logging.getLogger(__name__)
 
