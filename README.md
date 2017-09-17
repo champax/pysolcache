@@ -5,7 +5,7 @@ Welcome to pysol
 
 Copyright (C) 2013/2017 Laurent Labatut / Laurent Champagnac
 
-pysolcache is a set of python caches, memory, redis or both.
+pysolcache is a set of python caches : in-memory and/or redis.
 
 Usefull to handle L1 (memory) and L2 (redis) cache for python daemons.
 

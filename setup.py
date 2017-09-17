@@ -67,7 +67,7 @@ setup(
     author=p_author,
     author_email=p_email,
     url=p_url,
-    description=p_name + " APIs",
+    description="Set of python caches : in-memory and/or redis",
 
     # Version, format : Major.Minor.Revision
     version=p_version,
