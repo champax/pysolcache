@@ -33,8 +33,8 @@ class HighCache(object):
     """
     A High cache, handling L1 (MemoryCache), L2 (RedisCache)
     Provided MemoryCache and RedisCache must be ready for start/stop.
-    - Keys : (str,unicode)
-    - Values : (str,unicode)
+    - Keys : str
+    - Values : bytes
     """
 
     def __init__(self,
@@ -77,13 +77,13 @@ class HighCache(object):
         # noinspection PyProtectedMember
         s = self._memory_cache._is_started
         if not s:
-            logger.warn("_memory_cache : _is_started=%s, forcing start_cache now", s)
+            logger.warning("_memory_cache : _is_started=%s, forcing start_cache now", s)
             self._memory_cache.start_cache()
 
         # noinspection PyProtectedMember
         s = self._redis_cache._is_started
         if not s:
-            logger.warn("_redis_cache : _is_started=%s, forcing start_cache now", s)
+            logger.warning("_redis_cache : _is_started=%s, forcing start_cache now", s)
             self._redis_cache.start_cache()
 
     def __del__(self):
@@ -116,7 +116,7 @@ class HighCache(object):
         """
         Get from cache.
         :param key: Any key
-        :type key: str, unicode
+        :type key: str
         :param l1: fetch from L1?
         :type l1: bool
         :param l2: fetch from L2?
@@ -139,12 +139,12 @@ class HighCache(object):
         """
         Get from cache.
         :param key: Any key
-        :type key: str, unicode
+        :type key: str
         :param l1: fetch from L1?
         :type l1: bool
         :param l2: fetch from L2?
         :type l2: bool
-        :return tuple (value or None, integer 0 for miss, 1 for L1 hit, 2 for L2 hit)
+        :return tuple (bytes or None, integer 0 for miss, 1 for L1 hit, 2 for L2 hit)
         :rtype tuple
         """
 
@@ -168,7 +168,7 @@ class HighCache(object):
         """
         Remove a key from cache.
         :param key: Any key
-        :type key: str, unicode
+        :type key: str
         :param l1: remove from L1?
         :type l1: bool
         :param l2: remove from L2?
@@ -189,9 +189,9 @@ class HighCache(object):
         """
         Put in cache
         :param key: Any key
-        :type key: str, unicode
+        :type key: str
         :param val: Any val
-        :type val: str, unicode
+        :type val: bytes
         :param ttl_ms: Ttl in ms
         :type ttl_ms : int
         :param l1: put in L1?

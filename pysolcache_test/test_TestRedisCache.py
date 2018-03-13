@@ -70,7 +70,7 @@ class TestRedisCache(unittest.TestCase):
         """
 
         if self.redis_cache:
-            logger.warn("Stopping redis_cache")
+            logger.warning("Stopping redis_cache")
             self.redis_cache.stop_cache()
             self.redis_cache = None
 
@@ -126,46 +126,59 @@ class TestRedisCache(unittest.TestCase):
         self.assertIsNone(o)
 
         # Put
-        self.redis_cache.put(self.key_prefix + "keyA", "valA", 60000)
+        self.redis_cache.put(self.key_prefix + "keyA", b"valA", 60000)
         o = self.redis_cache.get(self.key_prefix + "keyA")
-        self.assertEqual(o, "valA")
+        self.assertEqual(o, b"valA")
 
         # Delete
         self.redis_cache.remove(self.key_prefix + "keyA")
         self.assertIsNone(self.redis_cache.get(self.key_prefix + "keyA"))
 
-        # Non str injection : must fail
-        # noinspection PyBroadException
+        # Non bytes injection : must fail
+        # noinspection PyBroadException,PyPep8
         try:
+            # noinspection PyTypeChecker
             self.redis_cache.put(self.key_prefix + "toto", 12, 1000)
             self.fail("Must fail")
         except:
             pass
 
-        # Unicode
-        self.redis_cache.put(self.key_prefix + "toto", u"unicode_buffer", 1000)
+        # Non bytes injection : must fail
+        # noinspection PyBroadException,PyPep8
+        try:
+            # noinspection PyTypeChecker
+            self.redis_cache.put(self.key_prefix + "toto", u"unicode_buffer", 1000)
+            self.fail("Must fail")
+        except:
+            pass
+
+        # This MUST fail
+        # noinspection PyBroadException
+        try:
+            # noinspection PyTypeChecker
+            self.redis_cache.put(999, b"value", 60000)
+            self.fail("Put a key as non bytes,str MUST fail")
+        except Exception:
+            pass
+
+        # This MUST fail
+        # noinspection PyBroadException
+        try:
+            # noinspection PyTypeChecker
+            self.redis_cache.remove(999)
+            self.fail("Remove a key as non bytes,str MUST fail")
+        except Exception:
+            pass
 
         # Put/Remove
-        self.redis_cache.put(self.key_prefix + "todel", "value", 60000)
-        self.assertEqual(self.redis_cache.get(self.key_prefix + "todel"), "value")
+        self.redis_cache.put(self.key_prefix + "todel", b"value", 60000)
+        self.assertEqual(self.redis_cache.get(self.key_prefix + "todel"), b"value")
         self.redis_cache.remove(self.key_prefix + "todel")
         self.assertEqual(self.redis_cache.get(self.key_prefix + "todel"), None)
 
-        # This MUST fail
-        # noinspection PyBroadException
-        try:
-            self.redis_cache.put(999, "value", 60000)
-            self.fail("Put a key as non str,unicode MUST fail")
-        except Exception:
-            pass
-
-        # This MUST fail
-        # noinspection PyBroadException
-        try:
-            self.redis_cache.remove(999)
-            self.fail("Remove a key as non str,unicode MUST fail")
-        except Exception:
-            pass
+        # Put
+        self.redis_cache.put("KEY \u001B\u0BD9\U0001A10D\u1501\xc3", b"zzz", 60000)
+        self.assertEqual(self.redis_cache.get("KEY \u001B\u0BD9\U0001A10D\u1501\xc3"), b"zzz")
 
         # Stop
         self.redis_cache.stop_cache()
@@ -181,8 +194,8 @@ class TestRedisCache(unittest.TestCase):
         self.redis_cache = RedisCache()
 
         # Put
-        self.redis_cache.put(self.key_prefix + "keyA", "valA", 60000)
-        self.redis_cache.put(self.key_prefix + "keyB", "valB", 1000)
+        self.redis_cache.put(self.key_prefix + "keyA", b"valA", 60000)
+        self.redis_cache.put(self.key_prefix + "keyB", b"valB", 1000)
         logger.info("ms cur=%s", SolBase.mscurrent())
         logger.info("A : %s", self.redis_cache.get(self.key_prefix + "keyA"))
         logger.info("B : %s", self.redis_cache.get(self.key_prefix + "keyB"))
@@ -193,7 +206,7 @@ class TestRedisCache(unittest.TestCase):
 
         # A : must be present
         # B : must be evicted (TTL elapsed)
-        self.assertEqual(self.redis_cache.get(self.key_prefix + "keyA"), "valA")
+        self.assertEqual(self.redis_cache.get(self.key_prefix + "keyA"), b"valA")
         self.assertIsNone(self.redis_cache.get(self.key_prefix + "keyB"))
 
         self.assertEqual(Meters.aig("rcs.cache_put"), 2)
@@ -214,15 +227,15 @@ class TestRedisCache(unittest.TestCase):
         self.redis_cache = RedisCache(max_single_item_bytes=2)
 
         # Put
-        self.assertTrue(self.redis_cache.put(self.key_prefix + "keyA", "aa", 60000))
-        self.assertFalse(self.redis_cache.put(self.key_prefix + "keyB", "aaa", 60000))
+        self.assertTrue(self.redis_cache.put(self.key_prefix + "keyA", b"aa", 60000))
+        self.assertFalse(self.redis_cache.put(self.key_prefix + "keyB", b"aaa", 60000))
         logger.info("ms cur=%s", SolBase.mscurrent())
         logger.info("A : %s", self.redis_cache.get(self.key_prefix + "keyA"))
         logger.info("B : %s", self.redis_cache.get(self.key_prefix + "keyB"))
 
         # A : must be present
         # B : must be out of cache
-        self.assertEqual(self.redis_cache.get(self.key_prefix + "keyA"), "aa")
+        self.assertEqual(self.redis_cache.get(self.key_prefix + "keyA"), b"aa")
         self.assertIsNone(self.redis_cache.get(self.key_prefix + "keyB"))
 
         self.assertEqual(Meters.aig("rcs.cache_put"), 1)
@@ -386,20 +399,21 @@ class TestRedisCache(unittest.TestCase):
                 cur_count += 1
                 try:
                     cur_item = random.randint(idx_min, idx_max)
-                    str_cur_item = str(cur_item)
+                    s_cur_item = "%s" % cur_item
+                    b_cur_item = SolBase.unicode_to_binary(s_cur_item, "utf-8")
                     cur_ttl = random.randint(self.bench_ttl_min_ms, self.bench_ttl_max_ms)
                     for _ in range(0, self.bench_put_weight):
-                        self.redis_cache.put(str_cur_item, str_cur_item, cur_ttl)
+                        self.redis_cache.put(s_cur_item, b_cur_item, cur_ttl)
                         SolBase.sleep(0)
 
                     for _ in range(0, self.bench_get_weight):
-                        v = self.redis_cache.get(str_cur_item)
+                        v = self.redis_cache.get(s_cur_item)
                         if v:
-                            self.assertEqual(v, str_cur_item)
+                            self.assertEqual(v, b_cur_item)
                         SolBase.sleep(0)
                 except Exception as e:
                     self.exception_raised += 1
-                    logger.warn("Ex=%s", SolBase.extostr(e))
+                    logger.warning("Ex=%s", SolBase.extostr(e))
                     self.thread_running_ok.increment(-1)
                     return
                 finally:

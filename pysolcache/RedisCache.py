@@ -34,8 +34,8 @@ logger = logging.getLogger(__name__)
 class RedisCache(object):
     """
     A redis backed cache supporting :
-    - Keys : (str,unicode)
-    - Values : (str,unicode)
+    - Keys : str
+    - Values : bytes
     """
 
     READ_DEFAULT_D = {"host": "localhost", "port": 6379, "db": 0, "max_connections": None}
@@ -111,7 +111,7 @@ class RedisCache(object):
 
         with self._run_lock:
             if self._is_started:
-                logger.warn("_is_started=%s, doing nothing", self._is_started)
+                logger.warning("_is_started=%s, doing nothing", self._is_started)
                 return
 
             # Initialize pools now
@@ -154,7 +154,8 @@ class RedisCache(object):
     # OPEN / CLOSE
     # ========================================
 
-    def _redis_close(self, pool, redis_instance):
+    @classmethod
+    def _redis_close(cls, pool, redis_instance):
         """
         Close redis
         :param pool: redis.ConnectionPool
@@ -170,7 +171,8 @@ class RedisCache(object):
             pool.disconnect()
             del pool
 
-    def _redis_open(self, d_param):
+    @classmethod
+    def _redis_open(cls, d_param):
         """
         Open a redis instance
         :param d_param: dict
@@ -206,15 +208,15 @@ class RedisCache(object):
         """
         Get from cache.
         :param key: Any key
-        :type key: str, unicode
+        :type key: str
         :return An obj or null if not in cache
-        :rtype str, unicode, None
+        :rtype bytes, None
         """
 
         ms_start = SolBase.mscurrent()
         try:
-            if not isinstance(key, (str, unicode)):
-                raise Exception("Key must be (str, unicode)")
+            if not isinstance(key, (bytes, str)):
+                raise Exception("Key must be (bytes, str)")
 
             # Use read redis
             v = self._read_redis.get(key)
@@ -226,7 +228,7 @@ class RedisCache(object):
                 logger.debug("miss, key=%s", key)
             return v
         except Exception as e:
-            logger.warn("Exception, ex=%s", SolBase.extostr(e))
+            logger.warning("Exception, ex=%s", SolBase.extostr(e))
             Meters.aii("rcs.cache_ex")
             return None
         finally:
@@ -240,20 +242,20 @@ class RedisCache(object):
         """
         Remove a key from cache.
         :param key: Any key
-        :type key: str, unicode
+        :type key: str
         """
 
         ms_start = SolBase.mscurrent()
         try:
-            if not isinstance(key, (str, unicode)):
-                raise Exception("Key must be (str, unicode)")
+            if not isinstance(key, (bytes, str)):
+                raise Exception("Key must be (bytes, str)")
 
             # Use write redis
             self._write_redis.delete(key)
             logger.debug("removed, key=%s", key)
 
         except Exception as e:
-            logger.warn("Exception, ex=%s", SolBase.extostr(e))
+            logger.warning("Exception, ex=%s", SolBase.extostr(e))
             Meters.aii("rcs.cache_ex")
         finally:
             Meters.dtci("rcs.cache_dtc_write", SolBase.msdiff(ms_start))
@@ -266,9 +268,9 @@ class RedisCache(object):
         """
         Put in cache
         :param key: Any key
-        :type key: str, unicode
+        :type key: str
         :param val: Any val
-        :type val: str, unicode
+        :type val: bytes
         :param ttl_ms: Ttl in ms
         :type ttl_ms : int
         :return bool (true is cached)
@@ -276,10 +278,10 @@ class RedisCache(object):
         """
 
         try:
-            if not isinstance(val, (str, unicode)):
-                raise Exception("Value must be (str, unicode)")
-            elif not isinstance(key, (str, unicode)):
-                raise Exception("Key must be (str, unicode)")
+            if not isinstance(val, (bytes, str)):
+                raise Exception("Value must be (bytes, str)")
+            elif not isinstance(key, (bytes, str)):
+                raise Exception("Key must be (bytes, str)")
 
             # Len of items to be added
             item_len = len(val)
@@ -300,6 +302,6 @@ class RedisCache(object):
             logger.debug("put, key=%s, ttl_ms=%s", key, ttl_ms)
             return True
         except Exception as e:
-            logger.warn("Exception, ex=%s", SolBase.extostr(e))
+            logger.warning("Exception, ex=%s", SolBase.extostr(e))
             Meters.aii("rcs.cache_ex")
             return False

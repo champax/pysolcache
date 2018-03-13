@@ -37,8 +37,8 @@ logger = logging.getLogger(__name__)
 class MemoryCache(object):
     """
     A binary memory cache, supporting :
-    - Keys : (str,unicode)
-    - Values : (str,unicode)
+    - Keys : str
+    - Values : bytes
     - Max bytes
     - Max items count
     - Items TTL
@@ -267,8 +267,9 @@ class MemoryCache(object):
         """
         Notify eviction
         :param k: Key
+        :type k: str
         :param v: Value
-        :type v: str, unicode
+        :type v: bytes
         :return Nothing
         """
 
@@ -280,7 +281,8 @@ class MemoryCache(object):
             self._cb_evict(k, v)
             logger.debug("evicted, key=%s", k)
 
-    def _is_expired(self, ttl_ms, cur_ms):
+    @classmethod
+    def _is_expired(cls, ttl_ms, cur_ms):
         """
         Return true if ttl is expired
         :param ttl_ms: Ttl
@@ -323,7 +325,7 @@ class MemoryCache(object):
         # We use the _hash_key directly since we don't care order here
         tu_to_evict = list()
         cur_ms = SolBase.mscurrent()
-        for tu in self._hash_key.iteritems():
+        for tu in self._hash_key.items():
             # v is a tuple (ms, object)
             if self._is_expired(tu[1][0], cur_ms):
                 tu_to_evict.append(tu)
@@ -377,7 +379,7 @@ class MemoryCache(object):
                         # Recheck
                         if (self._current_data_bytes.get() + len_to_add) > self._max_bytes:
                             # Failed...
-                            logger.warn("Cache purge failed, len_to_add=%s, items_count=%s, data size=%s, bytes_purged=%s, item_purged=%s, bytes_to_purge=%s, items_to_purge=%s",
+                            logger.warning("Cache purge failed, len_to_add=%s, items_count=%s, data size=%s, bytes_purged=%s, item_purged=%s, bytes_to_purge=%s, items_to_purge=%s",
                                         len_to_add, len(self._hash_key),
                                         self._current_data_bytes.get(),
                                         bytes_purged, item_purged,
@@ -401,7 +403,7 @@ class MemoryCache(object):
         """
         Remove a key from cache (from both dict)
         :param key: Any key
-        :type key: str, unicode
+        :type key: str
         """
 
         try:
@@ -416,7 +418,7 @@ class MemoryCache(object):
             except KeyError:
                 pass
         except Exception as e:
-            logger.warn("Exception, ex=%s", SolBase.extostr(e))
+            logger.warning("Exception, ex=%s", SolBase.extostr(e))
             Meters.aii("mcs.cache_ex")
 
     # ========================================
@@ -427,9 +429,9 @@ class MemoryCache(object):
         """
         Put in cache
         :param key: Any key
-        :type key: str, unicode
+        :type key: str
         :param val: Any val
-        :type val: str, unicode
+        :type val: bytes
         :param ttl_ms: Ttl in ms
         :type ttl_ms : int
         :return bool (true is cached)
@@ -437,10 +439,10 @@ class MemoryCache(object):
         """
 
         try:
-            if not isinstance(val, (str, unicode)):
-                raise Exception("Value must be (str, unicode)")
-            elif not isinstance(key, (str, unicode)):
-                raise Exception("Key must be (str, unicode)")
+            if not isinstance(val, bytes):
+                raise Exception("Value must be (bytes)")
+            elif not isinstance(key, str):
+                raise Exception("Key must be (str)")
 
             # Len of items to be added
             item_len = len(val)
@@ -479,7 +481,7 @@ class MemoryCache(object):
             logger.debug("put, key=%s, ttl_ms=%s", key, ttl_ms)
             return True
         except Exception as e:
-            logger.warn("Exception, ex=%s", SolBase.extostr(e))
+            logger.warning("Exception, ex=%s", SolBase.extostr(e))
             Meters.aii("mcs.cache_ex")
 
     # ========================================
@@ -491,9 +493,9 @@ class MemoryCache(object):
         Get from cache.
         Can evict if ttl expired and return None.
         :param key: Any key
-        :type key: str, unicode
+        :type key: str
         :return An obj or null if not in cache
-        :rtype: str, unicode, None
+        :rtype: bytes, None
         """
 
         v = self._get_raw(key)
@@ -511,11 +513,11 @@ class MemoryCache(object):
         """
         Remove a key from cache.
         :param key: Any key
-        :type key: str, unicode
+        :type key: str
         """
 
-        if not isinstance(key, (str, unicode)):
-            raise Exception("Key must be (str, unicode)")
+        if not isinstance(key, (bytes, str)):
+            raise Exception("Key must be (bytes, str)")
 
         if key in self._hash_key:
             # Get
@@ -534,8 +536,8 @@ class MemoryCache(object):
         Get from cache. For TEST ONLY.
         Can evict if ttl expired and return None.
         :param key: Any key
-        :type key: str, unicode
-        :return tuple(ttl_ms, value)
+        :type key: str
+        :return tuple(ttl_ms, value as bytes)
         :rtype; tuple, None
         """
 
@@ -569,6 +571,6 @@ class MemoryCache(object):
 
             return tu_obj
         except Exception as e:
-            logger.warn("Exception, ex=%s", SolBase.extostr(e))
+            logger.warning("Exception, ex=%s", SolBase.extostr(e))
             Meters.aii("mcs.cache_ex")
             return None

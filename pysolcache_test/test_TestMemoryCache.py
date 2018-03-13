@@ -24,7 +24,6 @@
 
 import logging
 import random
-import sys
 import unittest
 
 from gevent.event import Event
@@ -33,6 +32,7 @@ from pysolbase.SolBase import SolBase
 from pysolmeters.AtomicInt import AtomicIntSafe
 from pysolmeters.Meters import Meters
 
+from pysolcache import max_int
 from pysolcache.MemoryCache import MemoryCache
 
 SolBase.voodoo_init()
@@ -70,7 +70,7 @@ class TestMemoryCache(unittest.TestCase):
         """
 
         if self.mem_cache:
-            logger.warn("Stopping mem_cache")
+            logger.warning("Stopping mem_cache")
             self.mem_cache.stop_cache()
             self.mem_cache = None
 
@@ -131,15 +131,15 @@ class TestMemoryCache(unittest.TestCase):
         self.mem_cache = MemoryCache()
 
         # Put
-        self.mem_cache.put("A", "A1", 60000)
+        self.mem_cache.put("A", b"A1", 60000)
         self.assertEqual(self.mem_cache._current_data_bytes.get(), 2)
 
         # Put again, not the same data
-        self.mem_cache.put("A", "A11", 60000)
+        self.mem_cache.put("A", b"A11", 60000)
         self.assertEqual(self.mem_cache._current_data_bytes.get(), 3)
 
         # Put again, not the same data
-        self.mem_cache.put("A", "A", 60000)
+        self.mem_cache.put("A", b"A", 60000)
         self.assertEqual(self.mem_cache._current_data_bytes.get(), 1)
 
         # Stop
@@ -168,59 +168,72 @@ class TestMemoryCache(unittest.TestCase):
         self.assertIsNone(o)
 
         # Put
-        self.mem_cache.put("keyA", "valA", 60000)
+        self.mem_cache.put("keyA", b"valA", 60000)
         o = self.mem_cache.get("keyA")
-        self.assertEqual(o, "valA")
+        self.assertEqual(o, b"valA")
         o = self.mem_cache._get_raw("keyA")
         self.assertIsNotNone(o)
         self.assertIsInstance(o, tuple)
-        self.assertEqual(o[1], "valA")
+        self.assertEqual(o[1], b"valA")
         self.assertLessEqual(o[0] - SolBase.mscurrent(), 60000)
         logger.info("TTL approx=%s", o[0] - SolBase.mscurrent())
 
         # Put with lower TTL : TTL MUST BE UPDATED
-        self.mem_cache.put("keyA", "valA", 30000)
+        self.mem_cache.put("keyA", b"valA", 30000)
         o = self.mem_cache.get("keyA")
-        self.assertEqual(o, "valA")
+        self.assertEqual(o, b"valA")
         o = self.mem_cache._get_raw("keyA")
         self.assertIsNotNone(o)
         self.assertIsInstance(o, tuple)
-        self.assertEqual(o[1], "valA")
+        self.assertEqual(o[1], b"valA")
         self.assertLessEqual(o[0] - SolBase.mscurrent(), 30000)
         logger.info("TTL approx=%s", o[0] - SolBase.mscurrent())
 
-        # Non str injection : must fail
-        # noinspection PyBroadException
+        # Non bytes injection : must fail
+        # noinspection PyBroadException,PyPep8
         try:
+            # noinspection PyTypeChecker
             self.mem_cache.put("toto", 12, 1000)
             self.fail("Must fail")
         except:
             pass
 
-        # Unicode
-        self.mem_cache.put("toto", u"unicode_buffer", 1000)
+        # Non bytes injection : must fail
+        # noinspection PyBroadException,PyPep8
+        try:
+            # noinspection PyTypeChecker
+            self.mem_cache.put("toto", u"unicode_buffer", 1000)
+            self.fail("Must fail")
+        except:
+            pass
+
+        # This MUST fail
+        # noinspection PyBroadException
+        try:
+            # noinspection PyTypeChecker
+            self.mem_cache.put(999, b"value", 60000)
+            self.fail("Put a key as non bytes,str MUST fail")
+        except Exception:
+            pass
+
+        # This MUST fail
+        # noinspection PyBroadException
+        try:
+            # noinspection PyTypeChecker
+            self.mem_cache.remove(999)
+            self.fail("Remove a key as non bytes,str MUST fail")
+        except Exception:
+            pass
 
         # Put/Remove
-        self.mem_cache.put("todel", "value", 60000)
-        self.assertEqual(self.mem_cache.get("todel"), "value")
+        self.mem_cache.put("todel", b"value", 60000)
+        self.assertEqual(self.mem_cache.get("todel"), b"value")
         self.mem_cache.remove("todel")
         self.assertEqual(self.mem_cache.get("todel"), None)
 
-        # This MUST fail
-        # noinspection PyBroadException
-        try:
-            self.mem_cache.put(999, "value", 60000)
-            self.fail("Put a key as non str,unicode MUST fail")
-        except Exception:
-            pass
-
-        # This MUST fail
-        # noinspection PyBroadException
-        try:
-            self.mem_cache.remove(999)
-            self.fail("Remove a key as non str,unicode MUST fail")
-        except Exception:
-            pass
+        # Put
+        self.mem_cache.put("KEY \u001B\u0BD9\U0001A10D\u1501\xc3", b"zzz", 60000)
+        self.assertEqual(self.mem_cache.get("KEY \u001B\u0BD9\U0001A10D\u1501\xc3"), b"zzz")
 
         # Stop
         self.mem_cache.stop_cache()
@@ -236,9 +249,9 @@ class TestMemoryCache(unittest.TestCase):
         self.mem_cache = MemoryCache(max_item=3, cb_evict=self.eviction_callback)
 
         # Put
-        self.mem_cache.put("keyA", "valA", 60000)
-        self.mem_cache.put("keyB", "valB", 60000)
-        self.mem_cache.put("keyC", "valC", 60000)
+        self.mem_cache.put("keyA", b"valA", 60000)
+        self.mem_cache.put("keyB", b"valB", 60000)
+        self.mem_cache.put("keyC", b"valC", 60000)
 
         # Use A and C => B becomes the older to be used
         self.mem_cache.get("keyA")
@@ -246,14 +259,14 @@ class TestMemoryCache(unittest.TestCase):
 
         # We are maxed (3 items)
         # Add D => B must be kicked
-        self.mem_cache.put("keyD", "valD", 60000)
-        self.assertEqual(self.mem_cache.get("keyA"), "valA")
-        self.assertEqual(self.mem_cache.get("keyC"), "valC")
-        self.assertEqual(self.mem_cache.get("keyD"), "valD")
+        self.mem_cache.put("keyD", b"valD", 60000)
+        self.assertEqual(self.mem_cache.get("keyA"), b"valA")
+        self.assertEqual(self.mem_cache.get("keyC"), b"valC")
+        self.assertEqual(self.mem_cache.get("keyD"), b"valD")
         self.assertIsNone(self.mem_cache.get("keyB"))
         self.assertEqual(self.evict_count, 1)
         self.assertEqual(self.evict_last_key, "keyB")
-        self.assertEqual(self.evict_last_value, "valB")
+        self.assertEqual(self.evict_last_value, b"valB")
         self.assertEqual(Meters.aig("mcs.cache_evict_lru_put"), 1)
 
         # Stop
@@ -270,20 +283,20 @@ class TestMemoryCache(unittest.TestCase):
         self.mem_cache = MemoryCache(cb_evict=self.eviction_callback)
 
         # Put
-        self.mem_cache.put("keyA", "valA", 60000)
-        self.mem_cache.put("keyB", "valB", 60000)
-        self.mem_cache.put("keyC", "valC", 60000)
+        self.mem_cache.put("keyA", b"valA", 60000)
+        self.mem_cache.put("keyB", b"valB", 60000)
+        self.mem_cache.put("keyC", b"valC", 60000)
 
         # Evict LRU
         self.mem_cache._evict_key_lru()
 
         # A was put first => must be kicked
         self.assertIsNone(self.mem_cache.get("keyA"))
-        self.assertEqual(self.mem_cache.get("keyB"), "valB")
-        self.assertEqual(self.mem_cache.get("keyC"), "valC")
+        self.assertEqual(self.mem_cache.get("keyB"), b"valB")
+        self.assertEqual(self.mem_cache.get("keyC"), b"valC")
         self.assertEqual(self.evict_count, 1)
         self.assertEqual(self.evict_last_key, "keyA")
-        self.assertEqual(self.evict_last_value, "valA")
+        self.assertEqual(self.evict_last_value, b"valA")
 
         # Evict LRU
         self.mem_cache._evict_key_lru()
@@ -291,10 +304,10 @@ class TestMemoryCache(unittest.TestCase):
         # B was put first => must be kicked
         self.assertIsNone(self.mem_cache.get("keyA"))
         self.assertIsNone(self.mem_cache.get("keyB"))
-        self.assertEqual(self.mem_cache.get("keyC"), "valC")
+        self.assertEqual(self.mem_cache.get("keyC"), b"valC")
         self.assertEqual(self.evict_count, 2)
         self.assertEqual(self.evict_last_key, "keyB")
-        self.assertEqual(self.evict_last_value, "valB")
+        self.assertEqual(self.evict_last_value, b"valB")
 
         # Stop
         self.mem_cache.stop_cache()
@@ -310,21 +323,21 @@ class TestMemoryCache(unittest.TestCase):
         self.mem_cache = MemoryCache(cb_evict=self.eviction_callback)
 
         # Put
-        self.mem_cache.put("keyA", "valA", 60000)
-        self.mem_cache.put("keyB", "valB", 60000)
+        self.mem_cache.put("keyA", b"valA", 60000)
+        self.mem_cache.put("keyB", b"valB", 60000)
 
         # A was put first => must be kicked, but we GET IT => B must be kicked
-        self.assertEqual(self.mem_cache.get("keyA"), "valA")
+        self.assertEqual(self.mem_cache.get("keyA"), b"valA")
 
         # Evict LRU
         self.mem_cache._evict_key_lru()
 
         # A was used more recently => B must be kicked
         self.assertIsNone(self.mem_cache.get("keyB"))
-        self.assertEqual(self.mem_cache.get("keyA"), "valA")
+        self.assertEqual(self.mem_cache.get("keyA"), b"valA")
         self.assertEqual(self.evict_count, 1)
         self.assertEqual(self.evict_last_key, "keyB")
-        self.assertEqual(self.evict_last_value, "valB")
+        self.assertEqual(self.evict_last_value, b"valB")
 
         # Stop
         self.mem_cache.stop_cache()
@@ -340,8 +353,8 @@ class TestMemoryCache(unittest.TestCase):
         self.mem_cache = MemoryCache(cb_evict=self.eviction_callback)
 
         # Put
-        self.mem_cache.put("keyA", "valA", 60000)
-        self.mem_cache.put("keyB", "valB", 500)
+        self.mem_cache.put("keyA", b"valA", 60000)
+        self.mem_cache.put("keyB", b"valB", 500)
         logger.info("ms cur=%s", SolBase.mscurrent())
         logger.info("A : %s", self.mem_cache._get_raw("keyA"))
         logger.info("B : %s", self.mem_cache._get_raw("keyB"))
@@ -352,11 +365,11 @@ class TestMemoryCache(unittest.TestCase):
 
         # A : must be present
         # B : must be evicted (TTL elapsed)
-        self.assertEqual(self.mem_cache.get("keyA"), "valA")
+        self.assertEqual(self.mem_cache.get("keyA"), b"valA")
         self.assertIsNone(self.mem_cache.get("keyB"))
         self.assertEqual(self.evict_count, 1)
         self.assertEqual(self.evict_last_key, "keyB")
-        self.assertEqual(self.evict_last_value, "valB")
+        self.assertEqual(self.evict_last_value, b"valB")
         self.assertEqual(Meters.aig("mcs.cache_evict_ttl_get"), 1)
 
         # Stop
@@ -373,10 +386,10 @@ class TestMemoryCache(unittest.TestCase):
         self.mem_cache = MemoryCache(watchdog_interval_ms=1000, cb_watchdog=self.watchdog_callback, cb_evict=self.eviction_callback)
 
         # Put
-        self.mem_cache.put("keyA", "valA", 60000)
-        self.mem_cache.put("keyB", "valB", 500)
-        self.mem_cache.put("keyC", "valC", 500)
-        self.mem_cache.put("keyD", "valD", 60000)
+        self.mem_cache.put("keyA", b"valA", 60000)
+        self.mem_cache.put("keyB", b"valB", 500)
+        self.mem_cache.put("keyC", b"valC", 500)
+        self.mem_cache.put("keyD", b"valD", 60000)
         logger.info("ms cur=%s", SolBase.mscurrent())
         logger.info("A : %s", self.mem_cache._get_raw("keyA"))
         logger.info("B : %s", self.mem_cache._get_raw("keyB"))
@@ -404,11 +417,11 @@ class TestMemoryCache(unittest.TestCase):
         self.assertFalse("valC" in self.mem_cache._hash_context)
         self.assertIsNone(self.mem_cache.get("keyB"))
         self.assertIsNone(self.mem_cache.get("keyC"))
-        self.assertEqual(self.mem_cache.get("keyA"), "valA")
-        self.assertEqual(self.mem_cache.get("keyD"), "valD")
+        self.assertEqual(self.mem_cache.get("keyA"), b"valA")
+        self.assertEqual(self.mem_cache.get("keyD"), b"valD")
         self.assertEqual(self.evict_count, 2)
         self.assertTrue(self.evict_last_key == "keyB" or self.evict_last_key == "keyC")
-        self.assertTrue(self.evict_last_value == "valB" or self.evict_last_value == "valC")
+        self.assertTrue(self.evict_last_value == b"valB" or self.evict_last_value == b"valC")
 
         self.assertEqual(Meters.aig("mcs.cache_evict_ttl_watchdog"), 2)
 
@@ -429,8 +442,8 @@ class TestMemoryCache(unittest.TestCase):
         self.mem_cache = MemoryCache(watchdog_interval_ms=500, cb_watchdog=self.watchdog_callback)
 
         # Put
-        self.mem_cache.put("keyA", "valA", 60000)
-        self.mem_cache.put("keyD", "valD", 60000)
+        self.mem_cache.put("keyA", b"valA", 60000)
+        self.mem_cache.put("keyD", b"valD", 60000)
 
         # Wait a bit
         ms_start = SolBase.mscurrent()
@@ -526,10 +539,10 @@ class TestMemoryCache(unittest.TestCase):
         self._go_greenlet(
             128, 10, 10, 128000,
             watchdog_interval_ms=500,
-            max_item=sys.maxint,
+            max_item=max_int,
             max_bytes=10000,
             max_single_item_bytes=50,
-            purge_min_bytes=10000 / 2,
+            purge_min_bytes=int(10000 / 2),
             purge_min_count=5000,
         )
 
@@ -657,7 +670,7 @@ class TestMemoryCache(unittest.TestCase):
                 max_count = 0
                 total_size = 0
                 i = 0
-                for (k, v) in self.mem_cache._hash_key.iteritems():
+                for (k, v) in self.mem_cache._hash_key.items():
                     i += 1
                     total_size += len(v[1])
                     if i < max_count:
@@ -689,20 +702,21 @@ class TestMemoryCache(unittest.TestCase):
                 cur_count += 1
                 try:
                     cur_item = random.randint(idx_min, idx_max)
-                    str_cur_item = str(cur_item)
+                    s_cur_item = "%s" % cur_item
+                    b_cur_item = SolBase.unicode_to_binary(s_cur_item, "utf-8")
                     cur_ttl = random.randint(self.bench_ttl_min_ms, self.bench_ttl_max_ms)
                     for _ in range(0, self.bench_put_weight):
-                        self.mem_cache.put(str_cur_item, str_cur_item, cur_ttl)
+                        self.mem_cache.put(s_cur_item, b_cur_item, cur_ttl)
                         SolBase.sleep(0)
 
                     for _ in range(0, self.bench_get_weight):
-                        v = self.mem_cache.get(str_cur_item)
+                        v = self.mem_cache.get(s_cur_item)
                         if v:
-                            self.assertEqual(v, str_cur_item)
+                            self.assertEqual(v, b_cur_item)
                         SolBase.sleep(0)
                 except Exception as e:
                     self.exception_raised += 1
-                    logger.warn("Ex=%s", SolBase.extostr(e))
+                    logger.warning("Ex=%s", SolBase.extostr(e))
                     self.thread_running_ok.increment(-1)
                     return
                 finally:
@@ -728,23 +742,23 @@ class TestMemoryCache(unittest.TestCase):
             max_single_item_bytes=6,
             purge_min_bytes=5 * 5,
             purge_min_count=2,
-            max_item=sys.maxint
+            max_item=max_int,
         )
 
         # Put 10 items
         for i in range(10, 20):
-            self.mem_cache.put("key" + str(i), "val" + str(i), 60000)
+            self.mem_cache.put("key" + str(i), SolBase.unicode_to_binary("val%s" % i, "utf-8"), 60000)
 
         logger.info("Cache=%s", self.mem_cache)
 
         # Must have all of them
         for i in range(10, 20):
-            self.assertEqual(self.mem_cache.get("key" + str(i)), "val" + str(i))
+            self.assertEqual(self.mem_cache.get("key" + str(i)), SolBase.unicode_to_binary("val%s" % i, "utf-8"))
         self.assertEqual(len(self.mem_cache._hash_key), 10)
         self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * 10)
 
         # Then add a new one : we will over size the cache
-        self.mem_cache.put("key" + str(99), "val" + str(99), 60000)
+        self.mem_cache.put("key" + str(99), SolBase.unicode_to_binary("val99", "utf-8"), 60000)
 
         # We must have evicted AT least :
         # 5*5 + 5 bytes => 5 items + the item added => 6 items
@@ -754,14 +768,14 @@ class TestMemoryCache(unittest.TestCase):
         for i in range(10, 16):
             self.assertIsNone(self.mem_cache.get("key" + str(i)))
         for i in range(16, 20):
-            self.assertEqual(self.mem_cache.get("key" + str(i)), "val" + str(i))
-        self.assertEqual(self.mem_cache.get("key" + str(99)), "val" + str(99))
+            self.assertEqual(self.mem_cache.get("key" + str(i)), SolBase.unicode_to_binary("val%s" % i, "utf-8"))
+        self.assertEqual(self.mem_cache.get("key" + str(99)), SolBase.unicode_to_binary("val99", "utf-8"))
         self.assertEqual(len(self.mem_cache._hash_key), 5)
         self.assertEqual(len(self.mem_cache._hash_context), 5)
         self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * 5)
 
         # Try add a big one this time : must not be done (over limit)
-        self.mem_cache.put("BIGDATA", "aaaaaaaaaaaaaaaaaaaa", 60000)
+        self.mem_cache.put("BIGDATA", b"aaaaaaaaaaaaaaaaaaaa", 60000)
         self.assertIsNone(self.mem_cache.get("BIGDATA"))
 
         # Stop
@@ -780,23 +794,23 @@ class TestMemoryCache(unittest.TestCase):
             max_single_item_bytes=6,
             purge_min_bytes=1 * 5,
             purge_min_count=6,
-            max_item=sys.maxint
+            max_item=max_int,
         )
 
         # Put 10 items
         for i in range(10, 20):
-            self.mem_cache.put("key" + str(i), "val" + str(i), 60000)
+            self.mem_cache.put("key" + str(i), SolBase.unicode_to_binary("val%s" % i, "utf-8"), 60000)
 
         logger.info("Cache=%s", self.mem_cache)
 
         # Must have all of them
         for i in range(10, 20):
-            self.assertEqual(self.mem_cache.get("key" + str(i)), "val" + str(i))
+            self.assertEqual(self.mem_cache.get("key" + str(i)), SolBase.unicode_to_binary("val%s" % i, "utf-8"))
         self.assertEqual(len(self.mem_cache._hash_key), 10)
         self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * len(self.mem_cache._hash_key))
 
         # Then add a new one : we will over size the cache
-        self.mem_cache.put("key" + str(99), "val" + str(99), 60000)
+        self.mem_cache.put("key" + str(99), SolBase.unicode_to_binary("val99", "utf-8"), 60000)
 
         # We must have evicted AT least :
         # 1*5 + 5 bytes => 1 items + the item added => 2 items
@@ -806,14 +820,14 @@ class TestMemoryCache(unittest.TestCase):
         for i in range(10, 16):
             self.assertIsNone(self.mem_cache.get("key" + str(i)))
         for i in range(16, 20):
-            self.assertEqual(self.mem_cache.get("key" + str(i)), "val" + str(i))
-        self.assertEqual(self.mem_cache.get("key" + str(99)), "val" + str(99))
+            self.assertEqual(self.mem_cache.get("key" + str(i)), SolBase.unicode_to_binary("val%s" % i, "utf-8"))
+        self.assertEqual(self.mem_cache.get("key" + str(99)), SolBase.unicode_to_binary("val99", "utf-8"))
         self.assertEqual(len(self.mem_cache._hash_key), 5)
         self.assertEqual(len(self.mem_cache._hash_context), 5)
         self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * len(self.mem_cache._hash_key))
 
         # Try add a big one this time : must not be done (over limit)
-        self.mem_cache.put("BIGDATA", "aaaaaaaaaaaaaaaaaaaa", 60000)
+        self.mem_cache.put("BIGDATA", b"aaaaaaaaaaaaaaaaaaaa", 60000)
         self.assertIsNone(self.mem_cache.get("BIGDATA"))
         self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * len(self.mem_cache._hash_key))
 
@@ -832,30 +846,30 @@ class TestMemoryCache(unittest.TestCase):
             max_single_item_bytes=6,
             purge_min_bytes=1 * 5,
             purge_min_count=100,
-            max_item=sys.maxint
+            max_item=max_int,
         )
 
         # Put 10 items
-        for i in range(10, 20):
-            self.mem_cache.put("key" + str(i), "val" + str(i), 60000)
+        for i in range(10, 20):            
+            self.mem_cache.put("key" + str(i), SolBase.unicode_to_binary("val%s" % i, "utf-8"), 60000)
 
         logger.info("Cache=%s", self.mem_cache)
 
         # Must have all of them
         for i in range(10, 20):
-            self.assertEqual(self.mem_cache.get("key" + str(i)), "val" + str(i))
+            self.assertEqual(self.mem_cache.get("key" + str(i)), SolBase.unicode_to_binary("val%s" % i, "utf-8"))
         self.assertEqual(len(self.mem_cache._hash_key), 10)
         self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * len(self.mem_cache._hash_key))
 
         # Then add a new one : we will over size the cache
-        self.mem_cache.put("key" + str(99), "val" + str(99), 60000)
+        self.mem_cache.put("key" + str(99), SolBase.unicode_to_binary("val99", "utf-8"), 60000)
 
         # We must have evicted AT least :
         # 1*5 + 5 bytes => 1 items + the item added => 2 items
         # 100 items minimum
         # So : All items must be kicked, will remain only the new one
         logger.info("Hash = %s", self.mem_cache._hash_key)
-        self.assertEqual(self.mem_cache.get("key" + str(99)), "val" + str(99))
+        self.assertEqual(self.mem_cache.get("key" + str(99)), SolBase.unicode_to_binary("val99", "utf-8"))
         self.assertEqual(len(self.mem_cache._hash_key), 1)
         self.assertEqual(len(self.mem_cache._hash_context), 1)
         self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * len(self.mem_cache._hash_key))
@@ -871,7 +885,7 @@ class TestMemoryCache(unittest.TestCase):
 
         # Alloc
         self.mem_cache = MemoryCache(
-            max_bytes=sys.maxint,
+            max_bytes=max_int,
             max_single_item_bytes=6,
             purge_min_bytes=1 * 5,
             purge_min_count=0,
@@ -880,25 +894,25 @@ class TestMemoryCache(unittest.TestCase):
 
         # Put 10 items
         for i in range(10, 20):
-            self.mem_cache.put("key" + str(i), "val" + str(i), 60000)
+            self.mem_cache.put("key" + str(i), SolBase.unicode_to_binary("val%s" % i, "utf-8"), 60000)
 
         logger.info("Cache=%s", self.mem_cache)
 
         # Must have all of them
         for i in range(10, 20):
-            self.assertEqual(self.mem_cache.get("key" + str(i)), "val" + str(i))
+            self.assertEqual(self.mem_cache.get("key" + str(i)), SolBase.unicode_to_binary("val%s" % i, "utf-8"))
         self.assertEqual(len(self.mem_cache._hash_key), 10)
         self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * len(self.mem_cache._hash_key))
 
         # Then add a new one : we will over size the cache
-        self.mem_cache.put("key" + str(99), "val" + str(99), 60000)
+        self.mem_cache.put("key" + str(99), SolBase.unicode_to_binary("val99", "utf-8"), 60000)
 
         # We must have evicted only first added
         logger.info("Hash = %s", self.mem_cache._hash_key)
         self.assertIsNone(self.mem_cache.get("key" + str(10)))
         for i in range(11, 20):
-            self.assertEqual(self.mem_cache.get("key" + str(i)), "val" + str(i))
-        self.assertEqual(self.mem_cache.get("key" + str(99)), "val" + str(99))
+            self.assertEqual(self.mem_cache.get("key" + str(i)), SolBase.unicode_to_binary("val%s" % i, "utf-8"))
+        self.assertEqual(self.mem_cache.get("key" + str(99)), SolBase.unicode_to_binary("val99", "utf-8"))
         self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * len(self.mem_cache._hash_key))
 
         # Stop

@@ -53,35 +53,38 @@ class HighCacheEx(HighCache):
         logger.info("Initialize : started")
 
     # ========================================
-    # GET
+    # HELPERS
     # ========================================
 
-    def _decode(self, buf):
+    @classmethod
+    def _decode(cls, buf):
         """
         Decode buffer
-        :param buf: str
-        :type buf: str
-        :return tuple (data, ttl_ms, ms_added
+        :param buf: bytes
+        :type buf: bytes
+        :return tuple (data, ttl_ms, ms_added)
         :rtype tuple
         """
 
         try:
-            d = ujson.loads(buf)
-            return d["data"], d["ttl_ms"], d["ms_added"]
+            d = ujson.loads(SolBase.binary_to_unicode(buf, "utf-8"))
+            return SolBase.unicode_to_binary(d["data"], "utf-8"), d["ttl_ms"], d["ms_added"]
         except Exception as e:
-            logger.warn("Unable to decode, buf=%s, ex=%s", buf, SolBase.extostr(e))
+            logger.warning("Unable to decode, buf=%s, ex=%s", buf, SolBase.extostr(e))
             return None, None, None
 
-    def _encode(self, val, ttl_ms, ms_added=None):
+    @classmethod
+    def _encode(cls, val, ttl_ms, ms_added=None):
         """
         Encode
-        :param val: str
-        :type val: str
+        :param val: bytes
+        :type val: bytes
         :param ttl_ms: int
         :type ttl_ms: int
         :param ms_added: int, float, None
         :type ms_added: int, float, None
-        :return:
+        :return bytes
+        :rtype bytes
         """
 
         if not ms_added:
@@ -92,19 +95,26 @@ class HighCacheEx(HighCache):
             "ttl_ms": ttl_ms,
             "data": val,
         }
-        return ujson.dumps(d)
+        s = ujson.dumps(d)
+        return SolBase.unicode_to_binary(s, "utf-8")
+
+    # ========================================
+    # GET
+    # ========================================
 
     def get(self, key, l1=True, l2=True, put_l1=True):
         """
         Get from cache.
         :param key: Any key
-        :type key: str, unicode
+        :type key: str
         :param l1: fetch from L1?
         :type l1: bool
         :param l2: fetch from L2?
         :type put_l1: bool
         :param put_l1: put into L1 if L1 miss and L2 hit
         :type l2: bool
+        :return bytes,None
+        :rtype bytes,None
         """
 
         v, _ = self.getex(key, l1, l2)
@@ -114,14 +124,14 @@ class HighCacheEx(HighCache):
         """
         Get from cache.
         :param key: Any key
-        :type key: str, unicode
+        :type key: str
         :param l1: fetch from L1?
         :type l1: bool
         :param l2: fetch from L2?
         :type l2: bool
         :type put_l1: bool
         :param put_l1: put into L1 if L1 miss and L2 hit
-        :return tuple (value or None, integer 0 for miss, 1 for L1 hit, 2 for L2 hit)
+        :return tuple (bytes or None, integer 0 for miss, 1 for L1 hit, 2 for L2 hit)
         :rtype tuple
         """
 
@@ -165,7 +175,7 @@ class HighCacheEx(HighCache):
         """
         Remove a key from cache.
         :param key: Any key
-        :type key: str, unicode
+        :type key: str
         :param l1: remove from L1?
         :type l1: bool
         :param l2: remove from L2?
@@ -186,9 +196,9 @@ class HighCacheEx(HighCache):
         """
         Put in cache
         :param key: Any key
-        :type key: str, unicode
+        :type key: str
         :param val: Any val
-        :type val: str, unicode
+        :type val: bytes
         :param ttl_ms: Ttl in ms
         :type ttl_ms : int
         :param l1: put in L1?
