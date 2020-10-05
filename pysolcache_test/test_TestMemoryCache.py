@@ -132,15 +132,15 @@ class TestMemoryCache(unittest.TestCase):
 
         # Put
         self.mem_cache.put("A", b"A1", 60000)
-        self.assertEqual(self.mem_cache._current_data_bytes.get(), 2)
+        self.assertEqual(self.mem_cache._current_data_bytes.get(), 1 + 2)
 
         # Put again, not the same data
         self.mem_cache.put("A", b"A11", 60000)
-        self.assertEqual(self.mem_cache._current_data_bytes.get(), 3)
+        self.assertEqual(self.mem_cache._current_data_bytes.get(), 1 + 3)
 
         # Put again, not the same data
         self.mem_cache.put("A", b"A", 60000)
-        self.assertEqual(self.mem_cache._current_data_bytes.get(), 1)
+        self.assertEqual(self.mem_cache._current_data_bytes.get(), 1 + 1)
 
         # Stop
         self.mem_cache.stop_cache()
@@ -672,7 +672,7 @@ class TestMemoryCache(unittest.TestCase):
                 i = 0
                 for (k, v) in self.mem_cache._hash_key.items():
                     i += 1
-                    total_size += len(v[1])
+                    total_size += len(k) + len(v[1])
                     if i < max_count:
                         logger.info("%s => %s", k, v)
                 self.assertEqual(total_size, self.mem_cache._current_data_bytes.get())
@@ -738,9 +738,9 @@ class TestMemoryCache(unittest.TestCase):
 
         # Alloc
         self.mem_cache = MemoryCache(
-            max_bytes=5 * 10,
-            max_single_item_bytes=6,
-            purge_min_bytes=5 * 5,
+            max_bytes=5 * 10 * 2,
+            max_single_item_bytes=6 * 2,
+            purge_min_bytes=5 * 5 * 2,
             purge_min_count=2,
             max_item=max_int,
         )
@@ -755,7 +755,7 @@ class TestMemoryCache(unittest.TestCase):
         for i in range(10, 20):
             self.assertEqual(self.mem_cache.get("key" + str(i)), SolBase.unicode_to_binary("val%s" % i, "utf-8"))
         self.assertEqual(len(self.mem_cache._hash_key), 10)
-        self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * 10)
+        self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * 10 * 2)
 
         # Then add a new one : we will over size the cache
         self.mem_cache.put("key" + str(99), SolBase.unicode_to_binary("val99", "utf-8"), 60000)
@@ -772,7 +772,7 @@ class TestMemoryCache(unittest.TestCase):
         self.assertEqual(self.mem_cache.get("key" + str(99)), SolBase.unicode_to_binary("val99", "utf-8"))
         self.assertEqual(len(self.mem_cache._hash_key), 5)
         self.assertEqual(len(self.mem_cache._hash_context), 5)
-        self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * 5)
+        self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * 5 * 2)
 
         # Try add a big one this time : must not be done (over limit)
         self.mem_cache.put("BIGDATA", b"aaaaaaaaaaaaaaaaaaaa", 60000)
@@ -790,8 +790,8 @@ class TestMemoryCache(unittest.TestCase):
         # Alloc
 
         self.mem_cache = MemoryCache(
-            max_bytes=5 * 10,
-            max_single_item_bytes=6,
+            max_bytes=5 * 10 * 2,
+            max_single_item_bytes=6 * 2,
             purge_min_bytes=1 * 5,
             purge_min_count=6,
             max_item=max_int,
@@ -807,7 +807,7 @@ class TestMemoryCache(unittest.TestCase):
         for i in range(10, 20):
             self.assertEqual(self.mem_cache.get("key" + str(i)), SolBase.unicode_to_binary("val%s" % i, "utf-8"))
         self.assertEqual(len(self.mem_cache._hash_key), 10)
-        self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * len(self.mem_cache._hash_key))
+        self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * len(self.mem_cache._hash_key) * 2)
 
         # Then add a new one : we will over size the cache
         self.mem_cache.put("key" + str(99), SolBase.unicode_to_binary("val99", "utf-8"), 60000)
@@ -824,12 +824,14 @@ class TestMemoryCache(unittest.TestCase):
         self.assertEqual(self.mem_cache.get("key" + str(99)), SolBase.unicode_to_binary("val99", "utf-8"))
         self.assertEqual(len(self.mem_cache._hash_key), 5)
         self.assertEqual(len(self.mem_cache._hash_context), 5)
-        self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * len(self.mem_cache._hash_key))
+        self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * len(self.mem_cache._hash_key) * 2)
 
         # Try add a big one this time : must not be done (over limit)
         self.mem_cache.put("BIGDATA", b"aaaaaaaaaaaaaaaaaaaa", 60000)
         self.assertIsNone(self.mem_cache.get("BIGDATA"))
-        self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * len(self.mem_cache._hash_key))
+        self.mem_cache.put("aaaaaaaaaaaaaaaaaaaa", b"BIGKEY", 60000)
+        self.assertIsNone(self.mem_cache.get("aaaaaaaaaaaaaaaaaaaa"))
+        self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * len(self.mem_cache._hash_key) * 2)
 
         # Stop
         self.mem_cache.stop_cache()
@@ -842,8 +844,8 @@ class TestMemoryCache(unittest.TestCase):
 
         # Alloc
         self.mem_cache = MemoryCache(
-            max_bytes=5 * 10,
-            max_single_item_bytes=6,
+            max_bytes=5 * 10 * 2,
+            max_single_item_bytes=6 *2,
             purge_min_bytes=1 * 5,
             purge_min_count=100,
             max_item=max_int,
@@ -859,7 +861,7 @@ class TestMemoryCache(unittest.TestCase):
         for i in range(10, 20):
             self.assertEqual(self.mem_cache.get("key" + str(i)), SolBase.unicode_to_binary("val%s" % i, "utf-8"))
         self.assertEqual(len(self.mem_cache._hash_key), 10)
-        self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * len(self.mem_cache._hash_key))
+        self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * len(self.mem_cache._hash_key) * 2)
 
         # Then add a new one : we will over size the cache
         self.mem_cache.put("key" + str(99), SolBase.unicode_to_binary("val99", "utf-8"), 60000)
@@ -872,7 +874,7 @@ class TestMemoryCache(unittest.TestCase):
         self.assertEqual(self.mem_cache.get("key" + str(99)), SolBase.unicode_to_binary("val99", "utf-8"))
         self.assertEqual(len(self.mem_cache._hash_key), 1)
         self.assertEqual(len(self.mem_cache._hash_context), 1)
-        self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * len(self.mem_cache._hash_key))
+        self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * len(self.mem_cache._hash_key) * 2)
 
         # Stop
         self.mem_cache.stop_cache()
@@ -886,7 +888,7 @@ class TestMemoryCache(unittest.TestCase):
         # Alloc
         self.mem_cache = MemoryCache(
             max_bytes=max_int,
-            max_single_item_bytes=6,
+            max_single_item_bytes=6 * 2,
             purge_min_bytes=1 * 5,
             purge_min_count=0,
             max_item=10
@@ -902,7 +904,7 @@ class TestMemoryCache(unittest.TestCase):
         for i in range(10, 20):
             self.assertEqual(self.mem_cache.get("key" + str(i)), SolBase.unicode_to_binary("val%s" % i, "utf-8"))
         self.assertEqual(len(self.mem_cache._hash_key), 10)
-        self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * len(self.mem_cache._hash_key))
+        self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * len(self.mem_cache._hash_key) * 2)
 
         # Then add a new one : we will over size the cache
         self.mem_cache.put("key" + str(99), SolBase.unicode_to_binary("val99", "utf-8"), 60000)
@@ -913,7 +915,7 @@ class TestMemoryCache(unittest.TestCase):
         for i in range(11, 20):
             self.assertEqual(self.mem_cache.get("key" + str(i)), SolBase.unicode_to_binary("val%s" % i, "utf-8"))
         self.assertEqual(self.mem_cache.get("key" + str(99)), SolBase.unicode_to_binary("val99", "utf-8"))
-        self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * len(self.mem_cache._hash_key))
+        self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * len(self.mem_cache._hash_key) * 2)
 
         # Stop
         self.mem_cache.stop_cache()

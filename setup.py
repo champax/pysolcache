@@ -68,7 +68,7 @@ p_name = "pysolcache"
 p_author = "Laurent Champagnac"
 p_email = "champagnac.laurent@gmail.com"
 p_url = "https://knock.center"
-p_version = "1.1.1"
+p_version = "1.1.2"
 
 # Load
 req_list, dep_list = requirement_read("requirements.txt")

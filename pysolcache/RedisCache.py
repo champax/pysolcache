@@ -295,7 +295,10 @@ class RedisCache(object):
             ttl_sec = int(ttl_ms / 1000.0)
 
             # Use write redis
-            self._write_redis.setex(key, val, ttl_sec)
+            self._write_redis.setex(
+                name=key,
+                value=val,
+                time=ttl_sec)
 
             # Stat
             Meters.aii("rcs.cache_put")

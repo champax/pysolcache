@@ -60,9 +60,9 @@ class MemoryCache(object):
         :type watchdog_interval_ms: int
         :param max_item: max items in cache
         :type max_item: int
-        :param max_bytes: max bytes in cache
+        :param max_bytes: max bytes in cache (keys AND values)
         :type max_bytes: int
-        :param max_single_item_bytes: max single item bytes (if greater : no cache)
+        :param max_single_item_bytes: max single item bytes (if greater : no cache) (keys + values)
         :type max_single_item_bytes: int
         :param purge_min_bytes: purge minimum bytes
         :type purge_min_bytes: int
@@ -274,7 +274,7 @@ class MemoryCache(object):
         """
 
         # Decrement current size
-        self._current_data_bytes.increment(-len(v))
+        self._current_data_bytes.increment(-(len(k) + len(v)))
 
         # Callback
         if self._cb_evict:
@@ -313,7 +313,7 @@ class MemoryCache(object):
         # Notify
         self._notify_eviction(kv[0], kv[1][1])
 
-        return len(kv[1][1])
+        return len(kv[0]) + len(kv[1][1])
 
     def _evict_all_expired_keys(self):
         """
@@ -380,11 +380,11 @@ class MemoryCache(object):
                         if (self._current_data_bytes.get() + len_to_add) > self._max_bytes:
                             # Failed...
                             logger.warning("Cache purge failed, len_to_add=%s, items_count=%s, data size=%s, bytes_purged=%s, item_purged=%s, bytes_to_purge=%s, items_to_purge=%s",
-                                        len_to_add, len(self._hash_key),
-                                        self._current_data_bytes.get(),
-                                        bytes_purged, item_purged,
-                                        bytes_to_purge, items_to_purge
-                                        )
+                                           len_to_add, len(self._hash_key),
+                                           self._current_data_bytes.get(),
+                                           bytes_purged, item_purged,
+                                           bytes_to_purge, items_to_purge
+                                           )
 
                             # Stats
                             Meters.aii("mcs.cache_purge_failed")
@@ -445,7 +445,7 @@ class MemoryCache(object):
                 raise Exception("Key must be (str)")
 
             # Len of items to be added
-            item_len = len(val)
+            item_len = len(key) + len(val)
 
             # If item len is greater than specified threshold, do nothing
             if self._max_bytes and item_len > self._max_single_item_bytes:
