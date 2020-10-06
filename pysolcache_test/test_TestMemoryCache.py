@@ -845,14 +845,14 @@ class TestMemoryCache(unittest.TestCase):
         # Alloc
         self.mem_cache = MemoryCache(
             max_bytes=5 * 10 * 2,
-            max_single_item_bytes=6 *2,
+            max_single_item_bytes=6 * 2,
             purge_min_bytes=1 * 5,
             purge_min_count=100,
             max_item=max_int,
         )
 
         # Put 10 items
-        for i in range(10, 20):            
+        for i in range(10, 20):
             self.mem_cache.put("key" + str(i), SolBase.unicode_to_binary("val%s" % i, "utf-8"), 60000)
 
         logger.info("Cache=%s", self.mem_cache)

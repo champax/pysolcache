@@ -41,22 +41,36 @@ class RedisCache(object):
     READ_DEFAULT_D = {"host": "localhost", "port": 6379, "db": 0, "max_connections": None}
     WRITE_DEFAULT_D = READ_DEFAULT_D
 
+    # noinspection PyDefaultArgument
     def __init__(self,
                  pool_read_d=READ_DEFAULT_D,
                  pool_write_d=WRITE_DEFAULT_D,
-                 max_single_item_bytes=1 * 1024 * 1024):
+                 max_single_item_bytes=1 * 1024 * 1024,
+                 redis_read_client=None,
+                 redis_write_client=None,
+                 meters_prefix=""):
+
         """
         Constructor
-        :param pool_read_d: read pool parameters
-        :type pool_read_d: dict
-        :param pool_write_d: read pool parameters
-        :type pool_write_d: dict
+        :param pool_read_d: read pool parameters (DEPRECATED, PREFER using redis_read_client)
+        :type pool_read_d: dict,None
+        :param pool_write_d: read pool parameters (DEPRECATED, PREFER using redis_write_client)
+        :type pool_write_d: dict,None
         :param max_single_item_bytes: max single item bytes (if greater : no cache)
         :type max_single_item_bytes: int
+        :param redis_read_client: Redis read client. If set it has highest priority. Otherwise client will be allocated using pool_read_d.
+        :type redis_read_client: redis.StrictRedis,None
+        :param redis_write_client: Redis write client. If set it has highest priority. Otherwise client will be allocated using pool_write_d.
+        :type redis_write_client: redis.StrictRedis,None
+        :param meters_prefix: str
+        :type meters_prefix: str
         """
 
         # Params
         self._max_single_item_bytes = max_single_item_bytes
+
+        # Meters
+        self.meters_prefix = meters_prefix
 
         # Store dict
         self._pool_read_d = pool_read_d
@@ -68,6 +82,16 @@ class RedisCache(object):
 
         self._write_pool = None
         self._write_redis = None
+
+        # External client
+        self.redis_read_client = redis_read_client
+        self.redis_write_client = redis_write_client
+
+        # Must have external OR internal
+        if self.redis_read_client is None and self._pool_read_d is None:
+            raise Exception("No redis provided (redis_read_client and _pool_read_d None")
+        elif self.redis_write_client is None and self._pool_write_d is None:
+            raise Exception("No redis provided (redis_write_client and _pool_write_d None")
 
         # State
         self._is_started = False
@@ -93,11 +117,11 @@ class RedisCache(object):
 
         return "id={0}*put/bypass/hit/miss={1}/{2}/{3}/{4}*ex={5}".format(
             id(self),
-            Meters.aig("rcs.cache_put"),
-            Meters.aig("rcs.cache_put_too_big"),
-            Meters.aig("rcs.cache_get_hit"),
-            Meters.aig("rcs.cache_get_miss"),
-            Meters.aig("rcs.cache_ex"),
+            Meters.aig(self.meters_prefix + "rcs.cache_put"),
+            Meters.aig(self.meters_prefix + "rcs.cache_put_too_big"),
+            Meters.aig(self.meters_prefix + "rcs.cache_get_hit"),
+            Meters.aig(self.meters_prefix + "rcs.cache_get_miss"),
+            Meters.aig(self.meters_prefix + "rcs.cache_ex"),
         )
 
     # ========================================
@@ -115,11 +139,23 @@ class RedisCache(object):
                 return
 
             # Initialize pools now
-            logger.info("Initialize read redis now, _pool_read_d=%s", self._pool_read_d)
-            self._read_pool, self._read_redis = self._redis_open(self._pool_read_d)
+            if self.redis_read_client is None:
+                logger.info("Initialize read redis now (alloc), _pool_read_d=%s", self._pool_read_d)
+                self._read_pool, self._read_redis = self._redis_open(self._pool_read_d)
+            else:
+                # No pool, use external
+                logger.info("Initialize read redis now (external), redis_read_client=%s", self.redis_read_client)
+                self._read_pool = None
+                self._read_redis = self.redis_read_client
 
-            logger.info("Initialize write redis now, _pool_write_d=%s", self._pool_write_d)
-            self._write_pool, self._write_redis = self._redis_open(self._pool_write_d)
+            if self.redis_write_client is None:
+                logger.info("Initialize write redis now (alloc), _pool_write_d=%s", self._pool_write_d)
+                self._write_pool, self._write_redis = self._redis_open(self._pool_write_d)
+            else:
+                # No pool, use external
+                logger.info("Initialize write redis now (external), redis_write_client=%s", self.redis_write_client)
+                self._write_pool = None
+                self._write_redis = self.redis_write_client
 
             self._is_started = True
 
@@ -140,13 +176,23 @@ class RedisCache(object):
             if not self._is_started:
                 return
 
-            self._redis_close(self._read_pool, self._read_redis)
-            self._read_pool = None
-            self._read_redis = None
+            # We close only if _read_pool is allocated, otherwise redis_read_client has been provided externally and we dont touch it
+            if self._read_pool:
+                self._redis_close(self._read_pool, self._read_redis)
+                self._read_pool = None
+                self._read_redis = None
+            else:
+                self._read_redis = None
+                self.redis_read_client = None
 
-            self._redis_close(self._write_pool, self._write_redis)
-            self._write_pool = None
-            self._write_redis = None
+            # We close only if _write_pool is allocated, otherwise redis_read_client has been provided externally and we dont touch it
+            if self._write_pool:
+                self._redis_close(self._write_pool, self._write_redis)
+                self._write_pool = None
+                self._write_redis = None
+            else:
+                self._write_redis = None
+                self.redis_write_client = None
 
             self._is_started = False
 
@@ -221,18 +267,18 @@ class RedisCache(object):
             # Use read redis
             v = self._read_redis.get(key)
             if v:
-                Meters.aii("rcs.cache_get_hit")
+                Meters.aii(self.meters_prefix + "rcs.cache_get_hit")
                 logger.debug("hit, key=%s", key)
             else:
-                Meters.aii("rcs.cache_get_miss")
+                Meters.aii(self.meters_prefix + "rcs.cache_get_miss")
                 logger.debug("miss, key=%s", key)
             return v
         except Exception as e:
             logger.warning("Exception, ex=%s", SolBase.extostr(e))
-            Meters.aii("rcs.cache_ex")
+            Meters.aii(self.meters_prefix + "rcs.cache_ex")
             return None
         finally:
-            Meters.dtci("rcs.cache_dtc_read", SolBase.msdiff(ms_start))
+            Meters.dtci(self.meters_prefix + "rcs.cache_dtc_read", SolBase.msdiff(ms_start))
 
     # ========================================
     # REMOVE
@@ -256,9 +302,9 @@ class RedisCache(object):
 
         except Exception as e:
             logger.warning("Exception, ex=%s", SolBase.extostr(e))
-            Meters.aii("rcs.cache_ex")
+            Meters.aii(self.meters_prefix + "rcs.cache_ex")
         finally:
-            Meters.dtci("rcs.cache_dtc_write", SolBase.msdiff(ms_start))
+            Meters.dtci(self.meters_prefix + "rcs.cache_dtc_write", SolBase.msdiff(ms_start))
 
     # ========================================
     # PUT
@@ -288,7 +334,7 @@ class RedisCache(object):
 
             # If item len is greater than specified threshold, do nothing
             if item_len > self._max_single_item_bytes:
-                Meters.aii("rcs.cache_put_too_big")
+                Meters.aii(self.meters_prefix + "rcs.cache_put_too_big")
                 return False
 
             # Redis use second
@@ -301,10 +347,10 @@ class RedisCache(object):
                 time=ttl_sec)
 
             # Stat
-            Meters.aii("rcs.cache_put")
+            Meters.aii(self.meters_prefix + "rcs.cache_put")
             logger.debug("put, key=%s, ttl_ms=%s", key, ttl_ms)
             return True
         except Exception as e:
             logger.warning("Exception, ex=%s", SolBase.extostr(e))
-            Meters.aii("rcs.cache_ex")
+            Meters.aii(self.meters_prefix + "rcs.cache_ex")
             return False

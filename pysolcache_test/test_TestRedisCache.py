@@ -32,6 +32,7 @@ from gevent.greenlet import Greenlet
 from pysolbase.SolBase import SolBase
 from pysolmeters.AtomicInt import AtomicIntSafe
 from pysolmeters.Meters import Meters
+from redis import Redis
 
 from pysolcache.RedisCache import RedisCache
 
@@ -120,6 +121,85 @@ class TestRedisCache(unittest.TestCase):
 
         # Alloc
         self.redis_cache = RedisCache()
+
+        # Get : must return nothing
+        o = self.redis_cache.get(self.key_prefix + "not_found")
+        self.assertIsNone(o)
+
+        # Put
+        self.redis_cache.put(self.key_prefix + "keyA", b"valA", 60000)
+        o = self.redis_cache.get(self.key_prefix + "keyA")
+        self.assertEqual(o, b"valA")
+
+        # Delete
+        self.redis_cache.remove(self.key_prefix + "keyA")
+        self.assertIsNone(self.redis_cache.get(self.key_prefix + "keyA"))
+
+        # Non bytes injection : must fail
+        # noinspection PyBroadException,PyPep8
+        try:
+            # noinspection PyTypeChecker
+            self.redis_cache.put(self.key_prefix + "toto", 12, 1000)
+            self.fail("Must fail")
+        except:
+            pass
+
+        # Non bytes injection : must fail
+        # noinspection PyBroadException,PyPep8
+        try:
+            # noinspection PyTypeChecker
+            self.redis_cache.put(self.key_prefix + "toto", u"unicode_buffer", 1000)
+            self.fail("Must fail")
+        except:
+            pass
+
+        # This MUST fail
+        # noinspection PyBroadException
+        try:
+            # noinspection PyTypeChecker
+            self.redis_cache.put(999, b"value", 60000)
+            self.fail("Put a key as non bytes,str MUST fail")
+        except Exception:
+            pass
+
+        # This MUST fail
+        # noinspection PyBroadException
+        try:
+            # noinspection PyTypeChecker
+            self.redis_cache.remove(999)
+            self.fail("Remove a key as non bytes,str MUST fail")
+        except Exception:
+            pass
+
+        # Put/Remove
+        self.redis_cache.put(self.key_prefix + "todel", b"value", 60000)
+        self.assertEqual(self.redis_cache.get(self.key_prefix + "todel"), b"value")
+        self.redis_cache.remove(self.key_prefix + "todel")
+        self.assertEqual(self.redis_cache.get(self.key_prefix + "todel"), None)
+
+        # Put
+        self.redis_cache.put("KEY \u001B\u0BD9\U0001A10D\u1501\xc3", b"zzz", 60000)
+        self.assertEqual(self.redis_cache.get("KEY \u001B\u0BD9\U0001A10D\u1501\xc3"), b"zzz")
+
+        # Stop
+        self.redis_cache.stop_cache()
+        self.redis_cache = None
+
+    def test_basic_external_redis(self):
+        """
+        Test.
+        """
+
+        # External
+        r = Redis()
+
+        # Alloc
+        self.redis_cache = RedisCache(
+            pool_read_d=None,
+            pool_write_d=None,
+            redis_read_client=r,
+            redis_write_client=r,
+        )
 
         # Get : must return nothing
         o = self.redis_cache.get(self.key_prefix + "not_found")

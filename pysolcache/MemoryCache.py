@@ -53,7 +53,8 @@ class MemoryCache(object):
                  purge_min_bytes=8 * 1024 * 1024,
                  purge_min_count=1000,
                  cb_watchdog=None,
-                 cb_evict=None):
+                 cb_evict=None,
+                 meters_prefix=""):
         """
         Memory cache
         :param watchdog_interval_ms: watchdog interval in ms
@@ -70,6 +71,8 @@ class MemoryCache(object):
         :type purge_min_count: int
         :param cb_watchdog: callback for unittest
         :param cb_evict: callback for unittest
+        :param meters_prefix: Prefix for meters names
+        :type meters_prefix: str
         """
 
         # Params
@@ -95,6 +98,9 @@ class MemoryCache(object):
         self._cb_watchdog = cb_watchdog
         self._cb_evict = cb_evict
 
+        # Meters
+        self.meters_prefix = meters_prefix
+
         # Initialize
         self.start_cache()
 
@@ -117,16 +123,16 @@ class MemoryCache(object):
             id(self),
             len(self._hash_key),
             len(self._hash_context),
-            Meters.aig("mcs.cache_put"),
-            Meters.aig("mcs.cache_put_too_big"),
-            Meters.aig("mcs.cache_get_hit"),
-            Meters.aig("mcs.cache_get_miss"),
-            Meters.aig("mcs.cache_evict_ttl_watchdog"),
-            Meters.aig("mcs.cache_evict_ttl_get"),
-            Meters.aig("mcs.cache_evict_lru_put"),
-            Meters.aig("mcs.cache_evict_lru_size_put"),
-            Meters.aig("mcs.cache_ex"),
-            Meters.aig("mcs.cache_purge_failed"),
+            Meters.aig(self.meters_prefix + "mcs.cache_put"),
+            Meters.aig(self.meters_prefix + "mcs.cache_put_too_big"),
+            Meters.aig(self.meters_prefix + "mcs.cache_get_hit"),
+            Meters.aig(self.meters_prefix + "mcs.cache_get_miss"),
+            Meters.aig(self.meters_prefix + "mcs.cache_evict_ttl_watchdog"),
+            Meters.aig(self.meters_prefix + "mcs.cache_evict_ttl_get"),
+            Meters.aig(self.meters_prefix + "mcs.cache_evict_lru_put"),
+            Meters.aig(self.meters_prefix + "mcs.cache_evict_lru_size_put"),
+            Meters.aig(self.meters_prefix + "mcs.cache_ex"),
+            Meters.aig(self.meters_prefix + "mcs.cache_purge_failed"),
             self._current_data_bytes.get())
 
     def start_cache(self):
@@ -236,11 +242,11 @@ class MemoryCache(object):
             if not self._is_started:
                 return
 
-            Meters.dtci("mcs.cache_dtc_watchdog", SolBase.msdiff(ms))
+            Meters.dtci(self.meters_prefix + "mcs.cache_dtc_watchdog", SolBase.msdiff(ms))
 
             # Stat
             if evicted_count > 0:
-                Meters.aii("mcs.cache_evict_ttl_watchdog", evicted_count)
+                Meters.aii(self.meters_prefix + "mcs.cache_evict_ttl_watchdog", evicted_count)
 
             # Callback (unittest)
             if self._cb_watchdog:
@@ -249,12 +255,12 @@ class MemoryCache(object):
         except Exception as e:
             if self._is_started:
                 logger.error("_watchdog_run : Exception, id=%s, e=%s", id(self), SolBase.extostr(e))
-                Meters.aii("mcs.cache_ex")
+                Meters.aii(self.meters_prefix + "mcs.cache_ex")
             else:
                 logger.debug("_watchdog_run : Exception, id=%s, e=%s", id(self), SolBase.extostr(e))
                 reschedule = False
         finally:
-            Meters.aii("mcs.cache_watchdog_run_count")
+            Meters.aii(self.meters_prefix + "mcs.cache_watchdog_run_count")
             # Schedule next write
             if reschedule and self._is_started:
                 self._schedule_next_watchdog()
@@ -368,7 +374,7 @@ class MemoryCache(object):
                         while True:
                             bytes_purged += self._evict_key_lru()
                             item_purged += 1
-                            Meters.aii("mcs.cache_evict_lru_size_put")
+                            Meters.aii(self.meters_prefix + "mcs.cache_evict_lru_size_put")
                             if bytes_purged >= bytes_to_purge and item_purged >= items_to_purge:
                                 # Reached, done
                                 break
@@ -387,7 +393,7 @@ class MemoryCache(object):
                                            )
 
                             # Stats
-                            Meters.aii("mcs.cache_purge_failed")
+                            Meters.aii(self.meters_prefix + "mcs.cache_purge_failed")
 
                             # --------------------
         # MAX ITEM COUNT
@@ -397,7 +403,7 @@ class MemoryCache(object):
             # Evict
             self._evict_key_lru()
             # Stats
-            Meters.aii("mcs.cache_evict_lru_put")
+            Meters.aii(self.meters_prefix + "mcs.cache_evict_lru_put")
 
     def _safe_unhash(self, key):
         """
@@ -419,7 +425,7 @@ class MemoryCache(object):
                 pass
         except Exception as e:
             logger.warning("Exception, ex=%s", SolBase.extostr(e))
-            Meters.aii("mcs.cache_ex")
+            Meters.aii(self.meters_prefix + "mcs.cache_ex")
 
     # ========================================
     # PUT
@@ -449,7 +455,7 @@ class MemoryCache(object):
 
             # If item len is greater than specified threshold, do nothing
             if self._max_bytes and item_len > self._max_single_item_bytes:
-                Meters.aii("mcs.cache_put_too_big")
+                Meters.aii(self.meters_prefix + "mcs.cache_put_too_big")
                 return False
 
             # If maxed, kick one
@@ -477,12 +483,12 @@ class MemoryCache(object):
             self._current_data_bytes.increment(item_len)
 
             # Stat
-            Meters.aii("mcs.cache_put")
+            Meters.aii(self.meters_prefix + "mcs.cache_put")
             logger.debug("put, key=%s, ttl_ms=%s", key, ttl_ms)
             return True
         except Exception as e:
             logger.warning("Exception, ex=%s", SolBase.extostr(e))
-            Meters.aii("mcs.cache_ex")
+            Meters.aii(self.meters_prefix + "mcs.cache_ex")
 
     # ========================================
     # GET
@@ -548,7 +554,7 @@ class MemoryCache(object):
             tu_obj = self._hash_key.get(key)
             if not tu_obj:
                 # Stat
-                Meters.aii("mcs.cache_get_miss")
+                Meters.aii(self.meters_prefix + "mcs.cache_get_miss")
                 return None
 
             # Got it, check TTL
@@ -558,8 +564,8 @@ class MemoryCache(object):
                 # Notify
                 self._notify_eviction(key, tu_obj[1])
                 # Stat
-                Meters.aii("mcs.cache_get_miss")
-                Meters.aii("mcs.cache_evict_ttl_get")
+                Meters.aii(self.meters_prefix + "mcs.cache_get_miss")
+                Meters.aii(self.meters_prefix + "mcs.cache_evict_ttl_get")
                 return None
 
             # Got a HIT : Must update it in the ordered dict : del & re-add
@@ -567,10 +573,10 @@ class MemoryCache(object):
             self._hash_context[key] = tu_obj
 
             # Return the data
-            Meters.aii("mcs.cache_get_hit")
+            Meters.aii(self.meters_prefix + "mcs.cache_get_hit")
 
             return tu_obj
         except Exception as e:
             logger.warning("Exception, ex=%s", SolBase.extostr(e))
-            Meters.aii("mcs.cache_ex")
+            Meters.aii(self.meters_prefix + "mcs.cache_ex")
             return None
