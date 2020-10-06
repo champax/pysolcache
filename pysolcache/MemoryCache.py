@@ -395,7 +395,7 @@ class MemoryCache(object):
                             # Stats
                             Meters.aii(self.meters_prefix + "mcs.cache_purge_failed")
 
-                            # --------------------
+        # --------------------
         # MAX ITEM COUNT
         # --------------------
 
