@@ -171,7 +171,7 @@ class TestMemoryCache(unittest.TestCase):
         self.mem_cache.put("keyA", b"valA", 60000)
         o = self.mem_cache.get("keyA")
         self.assertEqual(o, b"valA")
-        o = self.mem_cache._get_raw("keyA")
+        o = self.mem_cache.get_raw("keyA")
         self.assertIsNotNone(o)
         self.assertIsInstance(o, tuple)
         self.assertEqual(o[1], b"valA")
@@ -182,7 +182,7 @@ class TestMemoryCache(unittest.TestCase):
         self.mem_cache.put("keyA", b"valA", 30000)
         o = self.mem_cache.get("keyA")
         self.assertEqual(o, b"valA")
-        o = self.mem_cache._get_raw("keyA")
+        o = self.mem_cache.get_raw("keyA")
         self.assertIsNotNone(o)
         self.assertIsInstance(o, tuple)
         self.assertEqual(o[1], b"valA")
@@ -356,8 +356,8 @@ class TestMemoryCache(unittest.TestCase):
         self.mem_cache.put("keyA", b"valA", 60000)
         self.mem_cache.put("keyB", b"valB", 500)
         logger.info("ms cur=%s", SolBase.mscurrent())
-        logger.info("A : %s", self.mem_cache._get_raw("keyA"))
-        logger.info("B : %s", self.mem_cache._get_raw("keyB"))
+        logger.info("A : %s", self.mem_cache.get_raw("keyA"))
+        logger.info("B : %s", self.mem_cache.get_raw("keyB"))
 
         # Wait a bit
         SolBase.sleep(600)
@@ -391,10 +391,10 @@ class TestMemoryCache(unittest.TestCase):
         self.mem_cache.put("keyC", b"valC", 500)
         self.mem_cache.put("keyD", b"valD", 60000)
         logger.info("ms cur=%s", SolBase.mscurrent())
-        logger.info("A : %s", self.mem_cache._get_raw("keyA"))
-        logger.info("B : %s", self.mem_cache._get_raw("keyB"))
-        logger.info("C : %s", self.mem_cache._get_raw("keyC"))
-        logger.info("D : %s", self.mem_cache._get_raw("keyD"))
+        logger.info("A : %s", self.mem_cache.get_raw("keyA"))
+        logger.info("B : %s", self.mem_cache.get_raw("keyB"))
+        logger.info("C : %s", self.mem_cache.get_raw("keyC"))
+        logger.info("D : %s", self.mem_cache.get_raw("keyD"))
 
         # Wait a bit
         ms_start = SolBase.mscurrent()

@@ -268,10 +268,8 @@ class RedisCache(object):
             v = self._read_redis.get(key)
             if v:
                 Meters.aii(self.meters_prefix + "rcs.cache_get_hit")
-                logger.debug("hit, key=%s", key)
             else:
                 Meters.aii(self.meters_prefix + "rcs.cache_get_miss")
-                logger.debug("miss, key=%s", key)
             return v
         except Exception as e:
             logger.warning("Exception, ex=%s", SolBase.extostr(e))
@@ -298,7 +296,6 @@ class RedisCache(object):
 
             # Use write redis
             self._write_redis.delete(key)
-            logger.debug("removed, key=%s", key)
 
         except Exception as e:
             logger.warning("Exception, ex=%s", SolBase.extostr(e))
@@ -348,7 +345,6 @@ class RedisCache(object):
 
             # Stat
             Meters.aii(self.meters_prefix + "rcs.cache_put")
-            logger.debug("put, key=%s, ttl_ms=%s", key, ttl_ms)
             return True
         except Exception as e:
             logger.warning("Exception, ex=%s", SolBase.extostr(e))

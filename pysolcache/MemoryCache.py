@@ -484,7 +484,6 @@ class MemoryCache(object):
 
             # Stat
             Meters.aii(self.meters_prefix + "mcs.cache_put")
-            logger.debug("put, key=%s, ttl_ms=%s", key, ttl_ms)
             return True
         except Exception as e:
             logger.warning("Exception, ex=%s", SolBase.extostr(e))
@@ -504,9 +503,8 @@ class MemoryCache(object):
         :rtype: bytes, None
         """
 
-        v = self._get_raw(key)
+        v = self.get_raw(key)
         if v:
-            logger.debug("hit, key=%s", key)
             return v[1]
         else:
             return None
@@ -537,9 +535,9 @@ class MemoryCache(object):
     # GET RAW
     # ========================================
 
-    def _get_raw(self, key):
+    def get_raw(self, key):
         """
-        Get from cache. For TEST ONLY.
+        Get from cache.
         Can evict if ttl expired and return None.
         :param key: Any key
         :type key: str
