@@ -95,7 +95,7 @@ class HighCacheEx(HighCache):
             "ttl_ms": ttl_ms,
             "data": val,
         }
-        s = ujson.dumps(d)
+        s = ujson.dumps(d, reject_bytes=False)
         return SolBase.unicode_to_binary(s, "utf-8")
 
     # ========================================

@@ -321,8 +321,8 @@ class RedisCache(object):
         """
 
         try:
-            if not isinstance(val, (bytes, str)):
-                raise Exception("Value must be (bytes, str)")
+            if not isinstance(val, bytes):
+                raise Exception("Value must be bytes")
             elif not isinstance(key, (bytes, str)):
                 raise Exception("Key must be (bytes, str)")
 
