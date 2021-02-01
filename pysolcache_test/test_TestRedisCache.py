@@ -379,7 +379,7 @@ class TestRedisCache(unittest.TestCase):
             self.bench_put_weight = put_count
             self.bench_get_weight = get_count
             self.bench_ttl_min_ms = 1000
-            self.bench_ttl_max_ms = g_ms / 2
+            self.bench_ttl_max_ms = int(g_ms / 2)
 
             # Go
             self.run_event = Event()

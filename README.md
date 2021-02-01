@@ -106,7 +106,7 @@ Source code
 - All unittest files must begin with `test_` or `Test`, should implement setUp and tearDown methods
 - All tests must adapt to any running directory
 - The whole project is backed by gevent (http://www.gevent.org/)
-- We use docstring (:return, :rtype, :param, :type etc..), they are mandatory
+- We use docstring (:return, :rtype, :param, :type etc), they are mandatory
 - We use PyCharm "noinspection", feel free to use them
 
 Requirements
