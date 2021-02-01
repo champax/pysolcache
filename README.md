@@ -112,7 +112,7 @@ Source code
 Requirements
 ===============
 
-- Debian 8 Jessie or greater, x64, Python 2.7
+- Debian 10 or greater, x64, Python 3.7
 
 Unittests
 ===============
