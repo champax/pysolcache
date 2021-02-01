@@ -189,7 +189,11 @@ class TestMemoryCache(unittest.TestCase):
         self.assertLessEqual(o[0] - SolBase.mscurrent(), 30000)
         logger.info("TTL approx=%s", o[0] - SolBase.mscurrent())
 
-        # Non bytes injection : must fail
+        # Str put : must now be ok
+        self.mem_cache.put("toto_str", "str_val", 1000)
+        self.assertEqual(self.mem_cache.get("toto_str"), "str_val")
+
+        # Non bytes,str injection (int) : must fail
         # noinspection PyBroadException,PyPep8
         try:
             # noinspection PyTypeChecker
