@@ -106,13 +106,13 @@ Source code
 - All unittest files must begin with `test_` or `Test`, should implement setUp and tearDown methods
 - All tests must adapt to any running directory
 - The whole project is backed by gevent (http://www.gevent.org/)
-- We use docstring (:return, :rtype, :param, :type etc..), they are mandatory
+- We use docstring (:return, :rtype, :param, :type etc), they are mandatory
 - We use PyCharm "noinspection", feel free to use them
 
 Requirements
 ===============
 
-- Debian 8 Jessie or greater, x64, Python 2.7
+- Debian 10 or greater, x64, Python 3.7
 
 Unittests
 ===============

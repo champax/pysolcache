@@ -24,6 +24,7 @@
 
 import logging
 import random
+import sys
 import unittest
 
 from gevent.event import Event
@@ -32,7 +33,6 @@ from pysolbase.SolBase import SolBase
 from pysolmeters.AtomicInt import AtomicIntSafe
 from pysolmeters.Meters import Meters
 
-from pysolcache import max_int
 from pysolcache.MemoryCache import MemoryCache
 
 SolBase.voodoo_init()
@@ -189,7 +189,11 @@ class TestMemoryCache(unittest.TestCase):
         self.assertLessEqual(o[0] - SolBase.mscurrent(), 30000)
         logger.info("TTL approx=%s", o[0] - SolBase.mscurrent())
 
-        # Non bytes injection : must fail
+        # Str put : must now be ok
+        self.mem_cache.put("toto_str", "str_val", 1000)
+        self.assertEqual(self.mem_cache.get("toto_str"), "str_val")
+
+        # Non bytes,str injection (int) : must fail
         # noinspection PyBroadException,PyPep8
         try:
             # noinspection PyTypeChecker
@@ -539,7 +543,7 @@ class TestMemoryCache(unittest.TestCase):
         self._go_greenlet(
             128, 10, 10, 128000,
             watchdog_interval_ms=500,
-            max_item=max_int,
+            max_item=sys.maxsize,
             max_bytes=10000,
             max_single_item_bytes=50,
             purge_min_bytes=int(10000 / 2),
@@ -592,7 +596,7 @@ class TestMemoryCache(unittest.TestCase):
             self.bench_put_weight = put_count
             self.bench_get_weight = get_count
             self.bench_ttl_min_ms = 1000
-            self.bench_ttl_max_ms = g_ms / 2
+            self.bench_ttl_max_ms = int(g_ms / 2)
 
             # Go
             self.run_event = Event()
@@ -742,7 +746,7 @@ class TestMemoryCache(unittest.TestCase):
             max_single_item_bytes=6 * 2,
             purge_min_bytes=5 * 5 * 2,
             purge_min_count=2,
-            max_item=max_int,
+            max_item=sys.maxsize,
         )
 
         # Put 10 items
@@ -794,7 +798,7 @@ class TestMemoryCache(unittest.TestCase):
             max_single_item_bytes=6 * 2,
             purge_min_bytes=1 * 5,
             purge_min_count=6,
-            max_item=max_int,
+            max_item=sys.maxsize,
         )
 
         # Put 10 items
@@ -848,7 +852,7 @@ class TestMemoryCache(unittest.TestCase):
             max_single_item_bytes=6 * 2,
             purge_min_bytes=1 * 5,
             purge_min_count=100,
-            max_item=max_int,
+            max_item=sys.maxsize,
         )
 
         # Put 10 items
@@ -887,7 +891,7 @@ class TestMemoryCache(unittest.TestCase):
 
         # Alloc
         self.mem_cache = MemoryCache(
-            max_bytes=max_int,
+            max_bytes=sys.maxsize,
             max_single_item_bytes=6 * 2,
             purge_min_bytes=1 * 5,
             purge_min_count=0,

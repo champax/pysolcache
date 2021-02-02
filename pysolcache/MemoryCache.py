@@ -38,7 +38,7 @@ class MemoryCache(object):
     """
     A binary memory cache, supporting :
     - Keys : str
-    - Values : bytes
+    - Values : bytes or str (str len computation may be approximate compared to real memory usage)
     - Max bytes
     - Max items count
     - Items TTL
@@ -275,7 +275,7 @@ class MemoryCache(object):
         :param k: Key
         :type k: str
         :param v: Value
-        :type v: bytes
+        :type v: bytes,str
         :return Nothing
         """
 
@@ -437,7 +437,7 @@ class MemoryCache(object):
         :param key: Any key
         :type key: str
         :param val: Any val
-        :type val: bytes
+        :type val: bytes,str
         :param ttl_ms: Ttl in ms
         :type ttl_ms : int
         :return bool (true is cached)
@@ -445,8 +445,8 @@ class MemoryCache(object):
         """
 
         try:
-            if not isinstance(val, bytes):
-                raise Exception("Value must be (bytes)")
+            if not isinstance(val, (str, bytes)):
+                raise Exception("Value must be (str, bytes)")
             elif not isinstance(key, str):
                 raise Exception("Key must be (str)")
 
@@ -500,7 +500,7 @@ class MemoryCache(object):
         :param key: Any key
         :type key: str
         :return An obj or null if not in cache
-        :rtype: bytes, None
+        :rtype: bytes,str,None
         """
 
         v = self.get_raw(key)
@@ -541,7 +541,7 @@ class MemoryCache(object):
         Can evict if ttl expired and return None.
         :param key: Any key
         :type key: str
-        :return tuple(ttl_ms, value as bytes)
+        :return tuple(ttl_ms, value as bytes or str)
         :rtype; tuple, None
         """
 
