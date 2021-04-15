@@ -235,8 +235,8 @@ class MemoryCache(object):
         reschedule = True
         try:
             # Current meters
-            Meters.aii(self.meters_prefix + "mcs.cur_bytes", self._current_data_bytes.get())
-            Meters.aii(self.meters_prefix + "mcs.cur_size_hash", len(self._hash_key))
+            Meters.ais(self.meters_prefix + "mcs.cur_bytes", self._current_data_bytes.get())
+            Meters.ais(self.meters_prefix + "mcs.cur_size_hash", len(self._hash_key))
 
             # Evict
             ms = SolBase.mscurrent()
