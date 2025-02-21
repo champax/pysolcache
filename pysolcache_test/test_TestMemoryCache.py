@@ -705,10 +705,10 @@ class TestMemoryCache(unittest.TestCase):
             while not self.run_event.isSet():
                 cur_count += 1
                 try:
-                    cur_item = random.randint(idx_min, idx_max)
+                    cur_item = random.randint(int(idx_min), int(idx_max))
                     s_cur_item = "%s" % cur_item
                     b_cur_item = SolBase.unicode_to_binary(s_cur_item, "utf-8")
-                    cur_ttl = random.randint(self.bench_ttl_min_ms, self.bench_ttl_max_ms)
+                    cur_ttl = random.randint(int(self.bench_ttl_min_ms), int(self.bench_ttl_max_ms))
                     for _ in range(0, self.bench_put_weight):
                         self.mem_cache.put(s_cur_item, b_cur_item, cur_ttl)
                         SolBase.sleep(0)

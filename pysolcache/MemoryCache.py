@@ -60,14 +60,14 @@ class MemoryCache(object):
         :param watchdog_interval_ms: watchdog interval in ms
         :type watchdog_interval_ms: int
         :param max_item: max items in cache
-        :type max_item: int
+        :type max_item: int,None (if None : no limit)
         :param max_bytes: max bytes in cache (keys AND values)
-        :type max_bytes: int
+        :type max_bytes: int,None (if None : no limit)
         :param max_single_item_bytes: max single item bytes (if greater : no cache) (keys + values)
-        :type max_single_item_bytes: int
-        :param purge_min_bytes: purge minimum bytes
+        :type max_single_item_bytes: int,None (if None : no limit)
+        :param purge_min_bytes: purge minimum bytes. Apply only IF max_bytes is set.
         :type purge_min_bytes: int
-        :param purge_min_count: purge minimum count
+        :param purge_min_count: purge minimum count. Apply only IF max_bytes is set.
         :type purge_min_count: int
         :param cb_watchdog: callback for unittest
         :param cb_evict: callback for unittest
@@ -358,7 +358,7 @@ class MemoryCache(object):
         # --------------------
         # MAX SIZE
         # --------------------
-        if self._max_bytes:
+        if self._max_bytes is not None:
             # Size limit... check
             if (self._current_data_bytes.get() + len_to_add) > self._max_bytes:
                 # -------------------------------------
@@ -403,7 +403,7 @@ class MemoryCache(object):
         # MAX ITEM COUNT
         # --------------------
 
-        if len(self._hash_context) >= self._max_item:
+        if self._max_item is not None and len(self._hash_context) >= self._max_item:
             # Evict
             self._evict_key_lru()
             # Stats
@@ -458,7 +458,7 @@ class MemoryCache(object):
             item_len = len(key) + len(val)
 
             # If item len is greater than specified threshold, do nothing
-            if self._max_bytes and item_len > self._max_single_item_bytes:
+            if self._max_single_item_bytes and item_len > self._max_single_item_bytes:
                 Meters.aii(self.meters_prefix + "mcs.cache_put_too_big")
                 return False
 
