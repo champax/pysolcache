@@ -7,8 +7,8 @@ greenlet
 gevent
 
 # pysol
-pysolbase>=3.0.0
-pysolmeters>=3.0.0
+pysolbase>=3.13.0
+pysolmeters>=3.13.0
 
 # redis
 redis

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # ===============================================================================
 #
-# Copyright (C) 2013/2017 Laurent Labatut / Laurent Champagnac
+# Copyright (C) 2013/2025 Laurent Labatut / Laurent Champagnac
 #
 #
 #
@@ -761,7 +761,7 @@ class TestMemoryCache(unittest.TestCase):
         self.assertEqual(len(self.mem_cache._hash_key), 10)
         self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * 10 * 2)
 
-        # Then add a new one : we will over size the cache
+        # Then add a new one : we will oversize the cache
         self.mem_cache.put("key" + str(99), SolBase.unicode_to_binary("val99", "utf-8"), 60000)
 
         # We must have evicted AT least :
@@ -778,7 +778,7 @@ class TestMemoryCache(unittest.TestCase):
         self.assertEqual(len(self.mem_cache._hash_context), 5)
         self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * 5 * 2)
 
-        # Try add a big one this time : must not be done (over limit)
+        # Try to add a big one this time : must not be done (over limit)
         self.mem_cache.put("BIGDATA", b"aaaaaaaaaaaaaaaaaaaa", 60000)
         self.assertIsNone(self.mem_cache.get("BIGDATA"))
 
@@ -813,7 +813,7 @@ class TestMemoryCache(unittest.TestCase):
         self.assertEqual(len(self.mem_cache._hash_key), 10)
         self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * len(self.mem_cache._hash_key) * 2)
 
-        # Then add a new one : we will over size the cache
+        # Then add a new one : we will oversize the cache
         self.mem_cache.put("key" + str(99), SolBase.unicode_to_binary("val99", "utf-8"), 60000)
 
         # We must have evicted AT least :
@@ -830,7 +830,7 @@ class TestMemoryCache(unittest.TestCase):
         self.assertEqual(len(self.mem_cache._hash_context), 5)
         self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * len(self.mem_cache._hash_key) * 2)
 
-        # Try add a big one this time : must not be done (over limit)
+        # Try to add a big one this time : must not be done (over limit)
         self.mem_cache.put("BIGDATA", b"aaaaaaaaaaaaaaaaaaaa", 60000)
         self.assertIsNone(self.mem_cache.get("BIGDATA"))
         self.mem_cache.put("aaaaaaaaaaaaaaaaaaaa", b"BIGKEY", 60000)
@@ -867,7 +867,7 @@ class TestMemoryCache(unittest.TestCase):
         self.assertEqual(len(self.mem_cache._hash_key), 10)
         self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * len(self.mem_cache._hash_key) * 2)
 
-        # Then add a new one : we will over size the cache
+        # Then add a new one : we will oversize the cache
         self.mem_cache.put("key" + str(99), SolBase.unicode_to_binary("val99", "utf-8"), 60000)
 
         # We must have evicted AT least :
@@ -910,7 +910,7 @@ class TestMemoryCache(unittest.TestCase):
         self.assertEqual(len(self.mem_cache._hash_key), 10)
         self.assertEqual(self.mem_cache._current_data_bytes.get(), 5 * len(self.mem_cache._hash_key) * 2)
 
-        # Then add a new one : we will over size the cache
+        # Then add a new one : we will oversize the cache
         self.mem_cache.put("key" + str(99), SolBase.unicode_to_binary("val99", "utf-8"), 60000)
 
         # We must have evicted only first added
