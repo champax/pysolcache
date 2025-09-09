@@ -9,3 +9,5 @@
 /pysolcache.egg-info/requires.txt
 /pysolcache.egg-info/SOURCES.txt
 /pysolcache.egg-info/top_level.txt
+/.tox/
+/build/

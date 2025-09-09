@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # ===============================================================================
 #
-# Copyright (C) 2013/2017 Laurent Labatut / Laurent Champagnac
+# Copyright (C) 2013/2025 Laurent Labatut / Laurent Champagnac
 #
 #
 #
@@ -478,7 +478,7 @@ class TestRedisCache(unittest.TestCase):
             while not self.run_event.isSet():
                 cur_count += 1
                 try:
-                    cur_item = random.randint(idx_min, idx_max)
+                    cur_item = random.randint(int(idx_min), int(idx_max))
                     s_cur_item = "%s" % cur_item
                     b_cur_item = SolBase.unicode_to_binary(s_cur_item, "utf-8")
                     cur_ttl = random.randint(self.bench_ttl_min_ms, self.bench_ttl_max_ms)

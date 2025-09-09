@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # ===============================================================================
 #
-# Copyright (C) 2013/2017 Laurent Labatut / Laurent Champagnac
+# Copyright (C) 2013/2025 Laurent Labatut / Laurent Champagnac
 #
 #
 #
@@ -58,9 +58,9 @@ class RedisCache(object):
         :type pool_write_d: dict,None
         :param max_single_item_bytes: max single item bytes (if greater : no cache)
         :type max_single_item_bytes: int
-        :param redis_read_client: Redis read client. If set it has highest priority. Otherwise client will be allocated using pool_read_d.
+        :param redis_read_client: Redis read client. If set it has the highest priority. Otherwise, client will be allocated using pool_read_d.
         :type redis_read_client: redis.StrictRedis,None
-        :param redis_write_client: Redis write client. If set it has highest priority. Otherwise client will be allocated using pool_write_d.
+        :param redis_write_client: Redis write client. If set it has the highest priority. Otherwise, client will be allocated using pool_write_d.
         :type redis_write_client: redis.StrictRedis,None
         :param meters_prefix: str
         :type meters_prefix: str
@@ -176,7 +176,7 @@ class RedisCache(object):
             if not self._is_started:
                 return
 
-            # We close only if _read_pool is allocated, otherwise redis_read_client has been provided externally and we dont touch it
+            # We close only if _read_pool is allocated, otherwise redis_read_client has been provided externally, and we don't touch it
             if self._read_pool:
                 self._redis_close(self._read_pool, self._read_redis)
                 self._read_pool = None
@@ -185,7 +185,7 @@ class RedisCache(object):
                 self._read_redis = None
                 self.redis_read_client = None
 
-            # We close only if _write_pool is allocated, otherwise redis_read_client has been provided externally and we dont touch it
+            # We close only if _write_pool is allocated, otherwise redis_read_client has been provided externally, and we don't touch it
             if self._write_pool:
                 self._redis_close(self._write_pool, self._write_redis)
                 self._write_pool = None
