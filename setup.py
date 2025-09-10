@@ -32,7 +32,7 @@ p_name = "pysolcache"
 p_author = "Laurent Champagnac"
 p_email = "champagnac.laurent@gmail.com"
 p_url = "https://github.com/champax/pysolcache"
-p_version = "3.13.0"
+p_version = "3.13.2"
 
 setup(
 
