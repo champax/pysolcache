@@ -1,14 +1,5 @@
-/.idea/encodings.xml
-/.idea/misc.xml
-/.idea/modules.xml
-/.idea/pysolcache.iml
-/.idea/workspace.xml
-/pysolcache.egg-info/dependency_links.txt
-/pysolcache.egg-info/not-zip-safe
-/pysolcache.egg-info/PKG-INFO
-/pysolcache.egg-info/requires.txt
-/pysolcache.egg-info/SOURCES.txt
-/pysolcache.egg-info/top_level.txt
 /.tox/
+/.idea/
 /build/
+/dist/
 /pysolcache.egg-info/
