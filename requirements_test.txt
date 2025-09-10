@@ -2,4 +2,5 @@ unittest-xml-reporting
 pylint
 twine
 tox
+toml
 
